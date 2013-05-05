@@ -92,9 +92,9 @@ static void init_task(void *pvParameters)
     for(int i=0; i < 8; i++)
       STM_EVAL_LEDInit(i);
 
-    xTaskCreate(init_task0, (signed char*)"init0", 1024, NULL, 3, NULL); 
-    xTaskCreate(init_task1, (signed char*)"init1", 1024, NULL, 3, NULL);
-    xTaskCreate(init_task2, (signed char*)"init2", 1024, NULL, 3, NULL);
+    xTaskCreate(init_task0, (signed char*)"init0", 512, NULL, 3, NULL); 
+    xTaskCreate(init_task1, (signed char*)"init1", 512, NULL, 3, NULL);
+    xTaskCreate(init_task2, (signed char*)"init2", 512, NULL, 3, NULL);
 
     for(;;) {
        STM_EVAL_LEDToggle(LED9);
@@ -112,7 +112,7 @@ int main(void)
 
     // Create init task and start the scheduler
     //
-    xTaskCreate(init_task, (signed char*)"init", 1024, NULL, 2, NULL);
+    xTaskCreate(init_task, (signed char*)"init", 512, NULL, 2, NULL);
     //xTaskCreate(init_task3, (signed char*)"init3", 1024, NULL, 3, NULL);
     //xTaskCreate(init_task2, (signed char*)"init2", 1024, NULL, tskIDLE_PRIORITY, NULL);
 
