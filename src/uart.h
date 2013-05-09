@@ -4,7 +4,8 @@
 #include <sys/types.h>
 #include <reent.h>
 
-extern void  uart_init(int baudrate);
+void  uart_init(int baudrate);
+void DMA2_Channel5_IRQHandler();
 extern void  uart_poll_send(const char *s);
 extern int   uart_chars_avail(void);
 
