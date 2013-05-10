@@ -1,5 +1,5 @@
 #include "syscalls.h"
-#include "uart.h"
+#include "hw/uart.h"
 #include "stm32f30x.h"
 #include "FreeRTOS.h"
 #include <unistd.h>

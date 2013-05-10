@@ -1,7 +1,7 @@
 #ifndef RINGBUF_H
 #define RINGBUF_H
 
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include "stm32f30x.h"
 #include "FreeRTOS.h"

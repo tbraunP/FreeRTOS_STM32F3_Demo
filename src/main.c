@@ -1,6 +1,6 @@
 #include "stm32f30x.h"
 #include "stm32f3_discovery.h"
-#include "uart.h"
+#include "hw/uart.h"
 #include "ansi.h"
 #include "ustime.h"
 #include "FreeRTOS.h"
@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "tasks/gyroTask.h"
 
 struct task_param {
 	char *name;
@@ -90,12 +91,14 @@ static void init_task(void *pvParameters) {
 	xTaskCreate(init_task0, (signed char* )"init0", 1024, NULL, 3, NULL);
 	xTaskCreate(init_task1, (signed char* )"init1", 1024, NULL, 3, NULL);
 	xTaskCreate(init_task2, (signed char* )"init2", 1024, NULL, 3, NULL);
+	xTaskCreate(gyroTask, (signed char* )"GyroTask", 1024, NULL, 4, NULL);
 
 	for (;;) {
 		STM_EVAL_LEDToggle(LED9);
 		vTaskDelay(500);
 	}
 }
+
 
 int main(void) {
 	// FreeRTOS assumes 4 preemption- and 0 subpriority-bits
