@@ -25,7 +25,8 @@ void GyroConfig(void) {
 
 	/* Configure Mems L3GD20 */
 	L3GD20_InitStructure.Power_Mode = L3GD20_MODE_ACTIVE;
-	L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_1;
+	//L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_1;
+	L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_4;
 	L3GD20_InitStructure.Axes_Enable = L3GD20_AXES_ENABLE;
 	L3GD20_InitStructure.Band_Width = L3GD20_BANDWIDTH_4;
 	L3GD20_InitStructure.BlockData_Update = L3GD20_BlockDataUpdate_Continous;
@@ -48,13 +49,20 @@ void gyroTask(void *pvParameters) {
 	printf("GyroTaks started\n");
 	GyroConfig();
 
+	int i=0;
+	float measure[3];
+
 	for (;;) {
 		// check for watermark
-		if (1 == 1) {
-			float measure[3];
+		//if(1==1){
+		if (L3GD20_SPI_INT2_GPIO_PORT->IDR & L3GD20_SPI_INT2_PIN) {
 			Demo_GyroReadAngRate(measure);
+			++i;
+		} else {
+			printf("%d - Gyro %f, %f, %f\n", i, measure[0], measure[1], measure[2]);
+			i = 0;
+			vTaskDelay(10);
 		}
-		vTaskDelay(50);
 	}
 }
 
