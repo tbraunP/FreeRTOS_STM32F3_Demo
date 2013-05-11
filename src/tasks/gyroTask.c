@@ -33,7 +33,6 @@ struct GyroState {
 	} GyroReadOutState;
 } GyroState;
 
-uint8_t Int2FifoEmpty[] = { L3GD20_CTRL_REG3_ADDR, 0x00 };
 uint8_t RequestGyro[] = { (L3GD20_OUT_X_L_ADDR | READWRITE_CMD
 		| MULTIPLEBYTE_CMD ), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
@@ -53,7 +52,7 @@ void configureDMA() {
 	GyroState.spiTXDMA.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
 	GyroState.spiTXDMA.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
 	GyroState.spiTXDMA.DMA_Mode = DMA_Mode_Normal;
-	GyroState.spiTXDMA.DMA_Priority = DMA_Priority_Low;
+	GyroState.spiTXDMA.DMA_Priority = DMA_Priority_Medium;
 	GyroState.spiTXDMA.DMA_M2M = DMA_M2M_Disable;
 
 	DMA_Init(DMA1_Channel3, &GyroState.spiTXDMA);
@@ -70,7 +69,7 @@ void configureDMA() {
 	GyroState.spiRXDMA.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
 	GyroState.spiRXDMA.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
 	GyroState.spiRXDMA.DMA_Mode = DMA_Mode_Normal;
-	GyroState.spiRXDMA.DMA_Priority = DMA_Priority_Low;
+	GyroState.spiRXDMA.DMA_Priority = DMA_Priority_Medium;
 	GyroState.spiRXDMA.DMA_M2M = DMA_M2M_Disable;
 
 	// Enable DMA Finished Interrupt
@@ -101,7 +100,7 @@ void GyroConfig(void) {
 	/* Configure Mems L3GD20 */
 	GyroState.L3GD20_InitStructure.Power_Mode = L3GD20_MODE_ACTIVE;
 	//L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_1;
-	GyroState.L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_4;
+	GyroState.L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_2;
 	GyroState.L3GD20_InitStructure.Axes_Enable = L3GD20_AXES_ENABLE;
 	GyroState.L3GD20_InitStructure.Band_Width = L3GD20_BANDWIDTH_4;
 	GyroState.L3GD20_InitStructure.BlockData_Update =
@@ -230,6 +229,7 @@ void gyroTask(void *pvParameters) {
 	float measure[3];
 
 	for (;;) {
+		printf("GyroTaks working\n");
 		// check for watermark
 		if (L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN) {
 //			Demo_GyroReadAngRate(measure);
@@ -239,9 +239,9 @@ void gyroTask(void *pvParameters) {
 //			printf("%d - Gyro %f, %f, %f\n", i, measure[0], measure[1],
 //					measure[2]);
 //			i = 0;
-			printf("Not ready");
+//			printf("Not ready\n");
 		}
-		vTaskDelay(1000);
+		vTaskDelay(2500);
 	}
 }
 

@@ -9,7 +9,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+
 #include "tasks/gyroTask.h"
+#include "tasks/accTask.h"
 
 struct task_param {
 	char *name;
@@ -66,7 +68,7 @@ static void init_task0(void *pvParameters) {
 	for (;;) {
 		STM_EVAL_LEDToggle(LED8);
 		vTaskDelay(500);
-		printf("Hallo Welt\n");
+		//printf("Hallo Welt\n");
 	}
 }
 
@@ -88,10 +90,12 @@ static void init_task(void *pvParameters) {
 	for (int i = 0; i < 8; i++)
 		STM_EVAL_LEDInit(i);
 
-	xTaskCreate(init_task0, (signed char* )"init0", 1024, NULL, 3, NULL);
-	xTaskCreate(init_task1, (signed char* )"init1", 1024, NULL, 3, NULL);
-	xTaskCreate(init_task2, (signed char* )"init2", 1024, NULL, 3, NULL);
-	xTaskCreate(gyroTask, (signed char* )"GyroTask", 1024, NULL, 4, NULL);
+	xTaskCreate(init_task0, (signed char* )"init0", 128, NULL, 2, NULL);
+	//xTaskCreate(init_task1, (signed char* )"init1", 512, NULL, 2, NULL);
+	//xTaskCreate(init_task2, (signed char* )"init2", 512, NULL, 2, NULL);
+	xTaskCreate(accTask, (signed char* )"ACCTask", 1024, NULL, 3, NULL);
+	xTaskCreate(gyroTask, (signed char* )"GyroTask", 1024, NULL, 3, NULL);
+
 
 	for (;;) {
 		STM_EVAL_LEDToggle(LED9);
@@ -107,11 +111,17 @@ int main(void) {
 
 	uart_init(115200);
 
+	for (int i = 0; i < 8; i++)
+		STM_EVAL_LEDInit(i);
+
 	// Create init task and start the scheduler
 	//
-	xTaskCreate(init_task, (signed char* )"init", 1024, NULL, 2, NULL);
+	//xTaskCreate(init_task, (signed char* )"init", 1024, NULL, 2, NULL);
 	//xTaskCreate(init_task3, (signed char*)"init3", 1024, NULL, 3, NULL);
 	//xTaskCreate(init_task2, (signed char*)"init2", 1024, NULL, tskIDLE_PRIORITY, NULL);
+	xTaskCreate(init_task0, (signed char* )"init0", 128, NULL, 2, NULL);
+	//xTaskCreate(accTask, (signed char* )"ACCTask", 1024, NULL, 3, NULL);
+	xTaskCreate(gyroTask, (signed char* )"GyroTask", 1024, NULL, 3, NULL);
 
 	vTaskStartScheduler();
 }

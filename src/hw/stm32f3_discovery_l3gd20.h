@@ -278,7 +278,7 @@ typedef struct
   * @}
   */
 
-/** @defgroup High_Pass_Filter_status
+/** @defgroup FIFO WORKING MODES
   * @{
   */
 #define L3GD20_FIFO_BYPASS_MODE    			((uint8_t)0x00)
