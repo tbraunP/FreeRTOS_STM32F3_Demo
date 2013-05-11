@@ -150,7 +150,7 @@ void GyroConfig(void) {
 	// Enable Watermark Interrupt
 	L3GD20_INT2InterruptCmd(L3GD20_INT2INTERRUPT_ENABLE_WTM );
 
-	// Initiate Reading
+	// Initiate Reading rising edge may be missed because buffer is already full?
 	if (L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN) {
 		NVIC_SetPendingIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
 	}
