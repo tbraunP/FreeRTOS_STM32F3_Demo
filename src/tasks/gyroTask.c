@@ -184,7 +184,7 @@ void handleData() {
 	static int i = 0;
 	float measure[6];
 	decodeGyroRead(&GyroState.GyroIn[1], measure);
-	if (i == 150) {
+	if (i == 1500) {
 		printf("Gyro %f, %f, %f\n", measure[0], measure[1], measure[2]);
 		i = 0;
 	}
