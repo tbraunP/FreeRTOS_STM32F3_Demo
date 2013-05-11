@@ -216,11 +216,10 @@ void DMA1_Channel2_IRQHandler(void) {
 
 	// new request received, necessary since rising edge may have been skipped (since buffer was never that empty)?
 	if (L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN) {
+		//EXTI1_IRQHandler();
 		NVIC_SetPendingIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
-		NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
-	} else {
-		NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
 	}
+	NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
 }
 
 void gyroTask(void *pvParameters) {
