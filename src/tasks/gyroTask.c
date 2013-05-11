@@ -101,7 +101,7 @@ void GyroConfig(void) {
 	/* Configure Mems L3GD20 */
 	GyroState.L3GD20_InitStructure.Power_Mode = L3GD20_MODE_ACTIVE;
 	//L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_1;
-	GyroState.L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_2;
+	GyroState.L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_4;
 	GyroState.L3GD20_InitStructure.Axes_Enable = L3GD20_AXES_ENABLE;
 	GyroState.L3GD20_InitStructure.Band_Width = L3GD20_BANDWIDTH_4;
 	GyroState.L3GD20_InitStructure.BlockData_Update =
@@ -180,24 +180,8 @@ void EXTI1_IRQHandler() {
 	DMA_Cmd(DMA1_Channel3, ENABLE);
 }
 
-void DMA1_Channel2_IRQHandler(void) {
+void handleData() {
 	static int i = 0;
-	//printf("DMA1Ch2\n");
-	L3GD20_CS_HIGH();
-
-	DMA_Cmd(DMA1_Channel3, DISABLE);
-	DMA_Cmd(DMA1_Channel2, DISABLE);
-	DMA_ClearITPendingBit(DMA1_IT_TC2);
-	--GyroState.dataRead;
-
-	//if ((L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN)) {
-	//	printf("Not not ready\n");
-	//}
-
-	//if (GyroState.dataRead > 0) {
-	//printf("Starting new Request\n");
-
-
 	float measure[6];
 	decodeGyroRead(&GyroState.GyroIn[1], measure);
 	if (i == 150) {
@@ -205,8 +189,20 @@ void DMA1_Channel2_IRQHandler(void) {
 		i = 0;
 	}
 	++i;
+}
 
-	if (GyroState.dataRead > 0) {
+void DMA1_Channel2_IRQHandler(void) {
+	L3GD20_CS_HIGH();
+
+	DMA_Cmd(DMA1_Channel3, DISABLE);
+	DMA_Cmd(DMA1_Channel2, DISABLE);
+	DMA_ClearITPendingBit(DMA1_IT_TC2);
+
+	// handle data
+	handleData();
+
+	if (GyroState.dataRead > 1) {
+		--GyroState.dataRead;
 		L3GD20_CS_LOW();
 		// gogogo
 		DMA_Init(DMA1_Channel3, &GyroState.spiTXDMA);
@@ -214,15 +210,15 @@ void DMA1_Channel2_IRQHandler(void) {
 
 		DMA_Cmd(DMA1_Channel2, ENABLE);
 		DMA_Cmd(DMA1_Channel3, ENABLE);
+
 		return;
 	}
 
-	// new request received?
+	// new request received, necessary since rising edge may have been skipped (since buffer was never that empty)?
 	if (L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN) {
 		NVIC_SetPendingIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
 		NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
 	} else {
-		printf("Int-> Not ready\n");
 		NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
 	}
 }
