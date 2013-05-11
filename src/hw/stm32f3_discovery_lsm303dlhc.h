@@ -68,8 +68,6 @@ typedef struct
   uint8_t BlockData_Update;                   /* Block Data Update */
   uint8_t Endianness;                         /* Endian Data selection */
   uint8_t AccFull_Scale;                      /* Full Scale selection */
-  uint8_t FifoMode;							  /* select FIFO Mode */
-  uint8_t FifoThreshold;					  /* 4 Byte threshold */
 }LSM303DLHCAcc_InitTypeDef;
 
 /* LSM303DLHC Acc High Pass Filter struct */
@@ -269,10 +267,10 @@ typedef struct
 /** @defgroup Acc_Full_Scale_Selection 
   * @{
   */
-#define LSM303DLHC_FULLSCALE_2G            ((uint8_t)0x00)  /*!< ï¿½2 g */
-#define LSM303DLHC_FULLSCALE_4G            ((uint8_t)0x10)  /*!< ï¿½4 g */
-#define LSM303DLHC_FULLSCALE_8G            ((uint8_t)0x20)  /*!< ï¿½8 g */
-#define LSM303DLHC_FULLSCALE_16G           ((uint8_t)0x30)  /*!< ï¿½16 g */
+#define LSM303DLHC_FULLSCALE_2G            ((uint8_t)0x00)  /*!< ±2 g */
+#define LSM303DLHC_FULLSCALE_4G            ((uint8_t)0x10)  /*!< ±4 g */
+#define LSM303DLHC_FULLSCALE_8G            ((uint8_t)0x20)  /*!< ±8 g */
+#define LSM303DLHC_FULLSCALE_16G           ((uint8_t)0x30)  /*!< ±16 g */
 /**
   * @}
   */
@@ -311,18 +309,6 @@ typedef struct
 #define LSM303DLHC_HPM_REF_SIGNAL          ((uint8_t)0x40)
 #define LSM303DLHC_HPM_NORMAL_MODE         ((uint8_t)0x80)
 #define LSM303DLHC_HPM_AUTORESET_INT       ((uint8_t)0xC0)
-
-
-/** @defgroup FIFO WORKING MODES
-  * @{
-  */
-#define LSM303DLHC_FIFO_BYPASS_MODE    			((uint8_t)0x00)
-#define LSM303DLHC_FIFO_MODE	     			((uint8_t)0x20)
-#define LSM303DLHC_FIFO_STREAM	     			((uint8_t)0x40)
-#define LSM303DLHC_FIFO_STREAM_TO_FIFO	     	((uint8_t)0x60)
-#define LSM303DLHC_FIFO_BYPASS_TO_STREAM     	((uint8_t)0x80)
-
-
 /**
   * @}
   */
@@ -474,13 +460,13 @@ typedef struct
 /** @defgroup Mag_Full_Scale
   * @{
   */ 
-#define  LSM303DLHC_FS_1_3_GA               ((uint8_t) 0x20)  /*!< Full scale = ï¿½1.3 Gauss */
-#define  LSM303DLHC_FS_1_9_GA               ((uint8_t) 0x40)  /*!< Full scale = ï¿½1.9 Gauss */
-#define  LSM303DLHC_FS_2_5_GA               ((uint8_t) 0x60)  /*!< Full scale = ï¿½2.5 Gauss */
-#define  LSM303DLHC_FS_4_0_GA               ((uint8_t) 0x80)  /*!< Full scale = ï¿½4.0 Gauss */
-#define  LSM303DLHC_FS_4_7_GA               ((uint8_t) 0xA0)  /*!< Full scale = ï¿½4.7 Gauss */
-#define  LSM303DLHC_FS_5_6_GA               ((uint8_t) 0xC0)  /*!< Full scale = ï¿½5.6 Gauss */
-#define  LSM303DLHC_FS_8_1_GA               ((uint8_t) 0xE0)  /*!< Full scale = ï¿½8.1 Gauss */
+#define  LSM303DLHC_FS_1_3_GA               ((uint8_t) 0x20)  /*!< Full scale = ±1.3 Gauss */
+#define  LSM303DLHC_FS_1_9_GA               ((uint8_t) 0x40)  /*!< Full scale = ±1.9 Gauss */
+#define  LSM303DLHC_FS_2_5_GA               ((uint8_t) 0x60)  /*!< Full scale = ±2.5 Gauss */
+#define  LSM303DLHC_FS_4_0_GA               ((uint8_t) 0x80)  /*!< Full scale = ±4.0 Gauss */
+#define  LSM303DLHC_FS_4_7_GA               ((uint8_t) 0xA0)  /*!< Full scale = ±4.7 Gauss */
+#define  LSM303DLHC_FS_5_6_GA               ((uint8_t) 0xC0)  /*!< Full scale = ±5.6 Gauss */
+#define  LSM303DLHC_FS_8_1_GA               ((uint8_t) 0xE0)  /*!< Full scale = ±8.1 Gauss */
 /**
   * @}
   */ 
