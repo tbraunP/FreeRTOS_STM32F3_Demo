@@ -171,6 +171,7 @@ void EXTI1_IRQHandler() {
 	// start reading and writing
 	GyroState.dataRead = GyroState.waterMark;
 
+	// DMA Request: Always call DMA_Init and DMA_CMD
 	DMA_Init(DMA1_Channel3, &GyroState.spiTXDMA);
 	DMA_Init(DMA1_Channel2, &GyroState.spiRXDMA);
 
@@ -195,29 +196,35 @@ void DMA1_Channel2_IRQHandler(void) {
 
 	//if (GyroState.dataRead > 0) {
 	//printf("Starting new Request\n");
-	L3GD20_CS_LOW();
+
 
 	float measure[6];
 	decodeGyroRead(&GyroState.GyroIn[1], measure);
-	if (i == 15) {
+	if (i == 150) {
 		printf("Gyro %f, %f, %f\n", measure[0], measure[1], measure[2]);
 		i = 0;
 	}
 	++i;
 
-	if (L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN){
-		NVIC_SetPendingIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
-		NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
-	}else{
-		NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
+	if (GyroState.dataRead > 0) {
+		L3GD20_CS_LOW();
+		// gogogo
+		DMA_Init(DMA1_Channel3, &GyroState.spiTXDMA);
+		DMA_Init(DMA1_Channel2, &GyroState.spiRXDMA);
+
+		DMA_Cmd(DMA1_Channel2, ENABLE);
+		DMA_Cmd(DMA1_Channel3, ENABLE);
+		return;
 	}
 
-	//DMA_Init(DMA1_Channel3, &GyroState.spiTXDMA);
-	//DMA_Init(DMA1_Channel2, &GyroState.spiRXDMA);
-
-	// gogogo
-	//DMA_Cmd(DMA1_Channel2, ENABLE);
-	//DMA_Cmd(DMA1_Channel3, ENABLE);
+	// new request received?
+	if (L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN) {
+		NVIC_SetPendingIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
+		NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
+	} else {
+		printf("Int-> Not ready\n");
+		NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
+	}
 }
 
 void gyroTask(void *pvParameters) {

@@ -198,6 +198,7 @@ void DMA2_Channel5_IRQHandler() {
 		uart_state.uartTXDMA.DMA_BufferSize = len;
 
 		// start transfer
+		// DMA Request: Always call DMA_Init and DMA_CMD
 		DMA_Init(DMA2_Channel5, &uart_state.uartTXDMA);
 		DMA_Cmd(DMA2_Channel5, ENABLE);
 		uart_state.dmaRunning = 1;
