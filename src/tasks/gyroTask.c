@@ -26,10 +26,16 @@ struct GyroState {
 
 	// result
 	volatile uint8_t GyroIn[8];
+
+	// State for DMA GyroReadOut
+	volatile enum GyroReadOutState {
+		SetInt2ToEmpty, FirstReadOut, ReadOut, SetInt2ToWatermark
+	} GyroReadOutState;
 } GyroState;
 
-uint8_t RequestGyro[] = { (L3GD20_OUT_X_L_ADDR | READWRITE_CMD | MULTIPLEBYTE_CMD ), 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00 };
+uint8_t Int2FifoEmpty[] = { L3GD20_CTRL_REG3_ADDR, 0x00 };
+uint8_t RequestGyro[] = { (L3GD20_OUT_X_L_ADDR | READWRITE_CMD
+		| MULTIPLEBYTE_CMD ), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 void configureDMA() {
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
@@ -95,7 +101,7 @@ void GyroConfig(void) {
 	/* Configure Mems L3GD20 */
 	GyroState.L3GD20_InitStructure.Power_Mode = L3GD20_MODE_ACTIVE;
 	//L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_1;
-	GyroState.L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_4;
+	GyroState.L3GD20_InitStructure.Output_DataRate = L3GD20_OUTPUT_DATARATE_2;
 	GyroState.L3GD20_InitStructure.Axes_Enable = L3GD20_AXES_ENABLE;
 	GyroState.L3GD20_InitStructure.Band_Width = L3GD20_BANDWIDTH_4;
 	GyroState.L3GD20_InitStructure.BlockData_Update =
@@ -109,7 +115,7 @@ void GyroConfig(void) {
 	// Configure filter
 	L3GD20_FilterConfigTypeDef L3GD20_FilterStructure;
 	L3GD20_FilterStructure.HighPassFilter_Mode_Selection =
-			L3GD20_HPM_NORMAL_MODE_RES;
+			L3GD20_HPM_AUTORESET_INT;
 	L3GD20_FilterStructure.HighPassFilter_CutOff_Frequency = L3GD20_HPFCF_0;
 	L3GD20_FilterConfig(&L3GD20_FilterStructure);
 	L3GD20_FilterCmd(L3GD20_HIGHPASSFILTER_ENABLE );
@@ -151,40 +157,67 @@ void GyroConfig(void) {
 }
 
 void EXTI1_IRQHandler() {
+	L3GD20_CS_HIGH();
 	//printf("Interupt\n");
-
-	/* Clear the EXTI line 0 pending bit */
-	if (EXTI_GetITStatus(L3GD20_SPI_INT2_EXTI_LINE) == SET) {
-		EXTI_ClearITPendingBit(L3GD20_SPI_INT2_EXTI_LINE);
-	}
-	L3GD20_CS_LOW();
 
 	// Disable Interrupt
 	NVIC_DisableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
 
-	// set number of values to read
-	GyroState.dataRead = GyroState.waterMark;
+	/* Clear the EXTI line 0 pending bit */
+	EXTI_ClearITPendingBit(L3GD20_SPI_INT2_EXTI_LINE);
+
+	L3GD20_CS_LOW();
 
 	// start reading and writing
+	GyroState.dataRead = GyroState.waterMark;
+
+	DMA_Init(DMA1_Channel3, &GyroState.spiTXDMA);
+	DMA_Init(DMA1_Channel2, &GyroState.spiRXDMA);
+
+	// gogogo
 	DMA_Cmd(DMA1_Channel2, ENABLE);
 	DMA_Cmd(DMA1_Channel3, ENABLE);
 }
 
 void DMA1_Channel2_IRQHandler(void) {
+	static int i = 0;
+	//printf("DMA1Ch2\n");
 	L3GD20_CS_HIGH();
+
+	DMA_Cmd(DMA1_Channel3, DISABLE);
 	DMA_Cmd(DMA1_Channel2, DISABLE);
 	DMA_ClearITPendingBit(DMA1_IT_TC2);
-
 	--GyroState.dataRead;
-	if (GyroState.dataRead > 0) {
-		printf("Value Read\n");
-		float measure[3];
-		decodeGyroRead(&GyroState.GyroIn[1], measure);
 
-		printf("- Gyro %f, %f, %f\n", measure[0], measure[1], measure[2]);
-	} else {
-		printf("No more data\n");
+	//if ((L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN)) {
+	//	printf("Not not ready\n");
+	//}
+
+	//if (GyroState.dataRead > 0) {
+	//printf("Starting new Request\n");
+	L3GD20_CS_LOW();
+
+	float measure[6];
+	decodeGyroRead(&GyroState.GyroIn[1], measure);
+	if (i == 15) {
+		printf("Gyro %f, %f, %f\n", measure[0], measure[1], measure[2]);
+		i = 0;
 	}
+	++i;
+
+	if (L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN){
+		NVIC_SetPendingIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
+		NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
+	}else{
+		NVIC_EnableIRQ(L3GD20_SPI_INT2_EXTI_IRQn);
+	}
+
+	//DMA_Init(DMA1_Channel3, &GyroState.spiTXDMA);
+	//DMA_Init(DMA1_Channel2, &GyroState.spiRXDMA);
+
+	// gogogo
+	//DMA_Cmd(DMA1_Channel2, ENABLE);
+	//DMA_Cmd(DMA1_Channel3, ENABLE);
 }
 
 void gyroTask(void *pvParameters) {
@@ -196,16 +229,17 @@ void gyroTask(void *pvParameters) {
 
 	for (;;) {
 		// check for watermark
-//		//if(1==1){
-//		if (L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN) {
+		if (L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN) {
 //			Demo_GyroReadAngRate(measure);
+			printf("DataReady\n");
 //			++i;
-//		} else {
+		} else {
 //			printf("%d - Gyro %f, %f, %f\n", i, measure[0], measure[1],
 //					measure[2]);
 //			i = 0;
-			vTaskDelay(10);
-//		}
+			printf("Not ready");
+		}
+		vTaskDelay(1000);
 	}
 }
 

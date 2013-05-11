@@ -312,8 +312,7 @@ void L3GD20_Read(uint8_t* pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead) {
 	} else {
 		ReadAddr |= (uint8_t)READWRITE_CMD;
 	}
-	/* Set chip select Low at the start of the transmission */
-	L3GD20_CS_LOW();
+	/* Set chip select Low at the start of the transmission */L3GD20_CS_LOW();
 
 	/* Send the Address of the indexed register */
 	L3GD20_SendByte(ReadAddr);
