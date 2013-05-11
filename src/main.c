@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 #include "tasks/gyroTask.h"
-#include "tasks/accTask.h"
+//#include "tasks/accTask.h"
 #include "tasks/accTaskOrig.h"
 
 struct task_param {
@@ -122,7 +122,7 @@ int main(void) {
 	//xTaskCreate(init_task2, (signed char*)"init2", 1024, NULL, tskIDLE_PRIORITY, NULL);
 	xTaskCreate(init_task0, (signed char* )"init0", 128, NULL, 2, NULL);
 	//xTaskCreate(accTask, (signed char* )"ACCTask", 1024, NULL, 3, NULL);
-	//xTaskCreate(gyroTask, (signed char* )"GyroTask", 1024, NULL, 3, NULL);
+	xTaskCreate(gyroTask, (signed char* )"GyroTask", 1024, NULL, 3, NULL);
 	xTaskCreate(accTaskOrig, (signed char* )"ACCTaskOrig", 1024, NULL, 3, NULL);
 
 	vTaskStartScheduler();
