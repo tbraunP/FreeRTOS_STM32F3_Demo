@@ -31,7 +31,7 @@ SET(LIBS_FLAG "-DHSE_VALUE=8000000 -D__FPU_PRESENT=1 -D__FPU_USED=1 -DUSE_STDPER
 SET(COMMON_FLAGS "-O0 -mcpu=cortex-m4 -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections -fno-common -fmessage-length=0 -fsingle-precision-constant -Wall ${LIBS_FLAG}")
 SET(CMAKE_CXX_FLAGS "${COMMON_FLAGS}  -fno-rtti  -fno-exceptions -std=gnu++0x")
 SET(CMAKE_C_FLAGS "${COMMON_FLAGS} -std=gnu99")
-SET(CMAKE_EXE_LINKER_FLAGS "-lm -Wl,-Map=${TARGET}.map,--cref -Wl,--gc-sections \"-T${CMAKE_SOURCE_DIR}/lib/STM32F3_CMSIS/stm32f4_flash.ld\" -static")
+SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-Map=${TARGET}.map,--cref -Wl,--gc-sections \"-T${CMAKE_SOURCE_DIR}/lib/STM32F3_CMSIS/stm32f4_flash.ld\" -static")
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES ${TARGET}.map)
 
 #remove -rdynamic to link static
@@ -72,6 +72,6 @@ AUX_SOURCE_DIRECTORY("src/tasks" SRCS)
 
 # define target
 add_executable(${TARGET}.elf ${SRCS})
-target_link_libraries (${TARGET}.elf STM32F3_CMSIS STM32F3_PeriphLib FREERTOS_742)
+target_link_libraries (${TARGET}.elf m c STM32F3_CMSIS STM32F3_PeriphLib FREERTOS_742)
 
 make_firmware(${TARGET}.elf)
