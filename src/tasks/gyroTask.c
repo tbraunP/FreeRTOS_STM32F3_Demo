@@ -33,6 +33,9 @@ struct GyroState {
 	} GyroReadOutState;
 } GyroState;
 
+/**
+ * Command to read gyro
+ */
 uint8_t RequestGyro[] = { (L3GD20_OUT_X_L_ADDR | READWRITE_CMD
 		| MULTIPLEBYTE_CMD ), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
@@ -155,6 +158,9 @@ void GyroConfig(void) {
 	}
 }
 
+/**
+ * Handler is executed if more than watermark elements are in the buffer
+ */
 void EXTI1_IRQHandler() {
 	L3GD20_CS_HIGH();
 	//printf("Interupt\n");
@@ -174,7 +180,7 @@ void EXTI1_IRQHandler() {
 	DMA_Init(DMA1_Channel3, &GyroState.spiTXDMA);
 	DMA_Init(DMA1_Channel2, &GyroState.spiRXDMA);
 
-	// gogogo
+	// gogogo, enable receive and than send
 	DMA_Cmd(DMA1_Channel2, ENABLE);
 	DMA_Cmd(DMA1_Channel3, ENABLE);
 }
