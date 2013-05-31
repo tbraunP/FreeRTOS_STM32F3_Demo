@@ -4,4 +4,6 @@
 
 void accTask(void *pvParameters);
 
+void EXTI4_IRQHandler();
+
 #endif

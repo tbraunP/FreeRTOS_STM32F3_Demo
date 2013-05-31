@@ -60,6 +60,46 @@ void Demo_CompassConfig(void) {
 
 	/* Configure the accelerometer LPF main parameters */
 	LSM303DLHC_AccFilterConfig(&LSM303DLHCFilter_InitStructure);
+
+	// Enable Interrupt for Int1 Watermark Threshold (data ready for readout)
+	/* Configure GPIO PINs to detect Interrupts */
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOE, ENABLE);
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Pin = LSM303DLHC_I2C_INT1_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(LSM303DLHC_I2C_INT1_GPIO_PORT, &GPIO_InitStructure);
+
+	/* Enable SYSCFG clock */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+
+	/* Connect EXTI0 Line to PA0 pin */
+	SYSCFG_EXTILineConfig(LSM303DLHC_I2C_INT1_EXTI_PORT_SOURCE,
+			LSM303DLHC_I2C_INT1_EXTI_PIN_SOURCE);
+
+	/* Configure EXTI0 line */
+	EXTI_InitTypeDef EXTI_InitStructure;
+	EXTI_InitStructure.EXTI_Line = LSM303DLHC_I2C_INT1_EXTI_LINE;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	/* Enable and set EXTI0 Interrupt to the lowest priority */
+	NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_InitStructure.NVIC_IRQChannel = LSM303DLHC_I2C_INT1_EXTI_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x10;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	// TODO: Enable Interrupt for Watermark
+}
+
+void EXTI4_IRQHandler() {
+	EXTI_ClearITPendingBit(LSM303DLHC_I2C_INT1_EXTI_LINE);
 }
 
 /**
