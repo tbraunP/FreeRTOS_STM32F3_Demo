@@ -243,6 +243,7 @@ float MagBuffer[3] = { 0.0f }, AccBuffer[3] = { 0.0f }, Buffer[3] = { 0.0f };
 float fNormAcc, fSinRoll, fCosRoll, fSinPitch, fCosPitch = 0.0f, RollAng = 0.0f,
 		PitchAng = 0.0f;
 float fTiltedX, fTiltedY = 0.0f, HeadingValue = 0.0f;
+float roll=0.0f, pitch = 0.0f;
 
 void accTask(void *pvParameters) {
 
@@ -266,6 +267,10 @@ void accTask(void *pvParameters) {
 		fCosRoll = sqrt(1.0 - (fSinRoll * fSinRoll));
 		fSinPitch = AccBuffer[0] / fNormAcc;
 		fCosPitch = sqrt(1.0 - (fSinPitch * fSinPitch));
+		
+		roll = atan2f(fSinRoll, fCosRoll) * 180 / PI;
+		pitch = atan2f(fSinPitch, fCosPitch) * 180 / PI;
+		
 		if (fSinRoll > 0) {
 			if (fCosRoll > 0) {
 				RollAng = acos(fCosRoll) * 180 / PI;
@@ -313,7 +318,7 @@ void accTask(void *pvParameters) {
 			HeadingValue = HeadingValue + 360;
 		}
 
-		printf("ACC: Roll: %f, Pitch: %f, Yaw: %f\n", RollAng, PitchAng,
+		printf("ACC: Roll: %f, Pitch: %f, Yaw: %f\n", roll, pitch,
 				HeadingValue);
 	}
 }
