@@ -12,6 +12,7 @@
 
 #include "tasks/gyroTask.h"
 #include "tasks/accTask.h"
+#include "tasks/motorControlTask.h"
 
 struct task_param {
 	char *name;
@@ -135,11 +136,11 @@ int main(void) {
 	for (int i = 0; i < 8; i++)
 		STM_EVAL_LEDInit(i);
 
-
-
 	// start freeRTOS
-	xTaskCreate(accTask, (signed char* )"accTask", 1024, NULL, 3, NULL);
-	xTaskCreate(gyroTask, (signed char* )"GyroTask", 1024, NULL, 3, NULL);
+	//xTaskCreate(accTask, (signed char* )"accTask", 1024, NULL, 3, NULL);
+	//xTaskCreate(gyroTask, (signed char* )"GyroTask", 1024, NULL, 3, NULL);
+	xTaskCreate(motorControlTask, (signed char* )"MotorTask", 1024, NULL, 4,
+			NULL);
 	vTaskStartScheduler();
 }
 
