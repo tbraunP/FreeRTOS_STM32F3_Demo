@@ -56,7 +56,7 @@ void configureDMA() {
 
 	// DMA Configuration
 	GyroState.spiTXDMA.DMA_BufferSize = 7;
-	GyroState.spiTXDMA.DMA_MemoryBaseAddr = (uint32_t) & RequestGyro;
+	GyroState.spiTXDMA.DMA_MemoryBaseAddr = (uint32_t) & RequestGyro[0];
 	GyroState.spiTXDMA.DMA_PeripheralBaseAddr = (uint32_t) & SPI1 ->DR;
 	GyroState.spiTXDMA.DMA_DIR = DMA_DIR_PeripheralDST;
 	GyroState.spiTXDMA.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
@@ -72,7 +72,7 @@ void configureDMA() {
 	// DMA Configuration for receiver
 	DMA_DeInit(DMA1_Channel2 );
 	GyroState.spiRXDMA.DMA_BufferSize = 7;
-	GyroState.spiRXDMA.DMA_MemoryBaseAddr = (uint32_t) & GyroState.GyroIn;
+	GyroState.spiRXDMA.DMA_MemoryBaseAddr = (uint32_t) & GyroState.GyroIn[0];
 	//uart_state.uartTXDMA.DMA_MemoryBaseAddr = (uint32_t) value;
 	GyroState.spiRXDMA.DMA_PeripheralBaseAddr = (uint32_t) & SPI1 ->DR;
 	GyroState.spiRXDMA.DMA_DIR = DMA_DIR_PeripheralSRC;
