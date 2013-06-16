@@ -1,119 +1,115 @@
 /**
-  ******************************************************************************
-  * @file    stm32f3_discovery_lsm303dlhc.h
-  * @author  MCD Application Team
-  * @version V1.1.0
-  * @date    20-September-2012
-  * @brief   This file contains definitions for stm32f3_discovery_lsm303dlhc.c 
-  *          firmware driver.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT 2012 STMicroelectronics</center></h2>
-  *
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
-  *
-  *        http://www.st.com/software_license_agreement_liberty_v2
-  *
-  * Unless required by applicable law or agreed to in writing, software 
-  * distributed under the License is distributed on an "AS IS" BASIS, 
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  *
-  ******************************************************************************
-  */
-  
+ ******************************************************************************
+ * @file    stm32f3_discovery_lsm303dlhc.h
+ * @author  MCD Application Team
+ * @version V1.1.0
+ * @date    20-September-2012
+ * @brief   This file contains definitions for stm32f3_discovery_lsm303dlhc.c
+ *          firmware driver.
+ ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; COPYRIGHT 2012 STMicroelectronics</center></h2>
+ *
+ * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
+ * You may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ *        http://www.st.com/software_license_agreement_liberty_v2
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ ******************************************************************************
+ */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __STM32F3_DISCOVERY_LSM303DLHC_H
 #define __STM32F3_DISCOVERY_LSM303DLHC_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
- #include "stm32f30x.h"
+#include "stm32f30x.h"
 
 /** @addtogroup Utilities
-  * @{
-  */
-  
+ * @{
+ */
+
 /** @addtogroup STM32F3_DISCOVERY
-  * @{
-  */ 
+ * @{
+ */
 
 /** @addtogroup STM32F3_DISCOVERY_LSM303DLHC
-  * @{
-  */
-  
+ * @{
+ */
+
 /** @defgroup STM32F3_DISCOVERY_LSM303DLHC_Exported_Types
-  * @{
-  */
+ * @{
+ */
 
 /** 
-  * @brief  LSM303DLHC Status  
-  */ 
+ * @brief  LSM303DLHC Status
+ */
 
 /* LSM303DLHC ACC struct */
-typedef struct
-{
-  uint8_t Power_Mode;                         /* Power-down/Normal Mode */
-  uint8_t AccOutput_DataRate;                 /* OUT data rate */
-  uint8_t Axes_Enable;                        /* Axes enable */
-  uint8_t High_Resolution;                    /* High Resolution enabling/disabling */
-  uint8_t BlockData_Update;                   /* Block Data Update */
-  uint8_t Endianness;                         /* Endian Data selection */
-  uint8_t AccFull_Scale;                      /* Full Scale selection */
-}LSM303DLHCAcc_InitTypeDef;
+typedef struct {
+	uint8_t Power_Mode; /* Power-down/Normal Mode */
+	uint8_t AccOutput_DataRate; /* OUT data rate */
+	uint8_t Axes_Enable; /* Axes enable */
+	uint8_t High_Resolution; /* High Resolution enabling/disabling */
+	uint8_t BlockData_Update; /* Block Data Update */
+	uint8_t Endianness; /* Endian Data selection */
+	uint8_t AccFull_Scale; /* Full Scale selection */
+} LSM303DLHCAcc_InitTypeDef;
 
 /* LSM303DLHC Acc High Pass Filter struct */
-typedef struct
-{
-  uint8_t HighPassFilter_Mode_Selection;      /* Internal filter mode */
-  uint8_t HighPassFilter_CutOff_Frequency;    /* High pass filter cut-off frequency */
-  uint8_t HighPassFilter_AOI1;                /* HPF_enabling/disabling for AOI function on interrupt 1 */
-  uint8_t HighPassFilter_AOI2;                /* HPF_enabling/disabling for AOI function on interrupt 2 */
-}LSM303DLHCAcc_FilterConfigTypeDef;
+typedef struct {
+	uint8_t HighPassFilter_Mode_Selection; /* Internal filter mode */
+	uint8_t HighPassFilter_CutOff_Frequency; /* High pass filter cut-off frequency */
+	uint8_t HighPassFilter_AOI1; /* HPF_enabling/disabling for AOI function on interrupt 1 */
+	uint8_t HighPassFilter_AOI2; /* HPF_enabling/disabling for AOI function on interrupt 2 */
+} LSM303DLHCAcc_FilterConfigTypeDef;
 
 /* LSM303DLHC Mag struct */
-typedef struct
-{
-  uint8_t Temperature_Sensor;                /* Temperature sensor enable/disable */
-  uint8_t MagOutput_DataRate;                /* OUT data rate */
-  uint8_t Working_Mode;                      /* operating mode */
-  uint8_t MagFull_Scale;                     /* Full Scale selection */
-}LSM303DLHCMag_InitTypeDef;
+typedef struct {
+	uint8_t Temperature_Sensor; /* Temperature sensor enable/disable */
+	uint8_t MagOutput_DataRate; /* OUT data rate */
+	uint8_t Working_Mode; /* operating mode */
+	uint8_t MagFull_Scale; /* Full Scale selection */
+} LSM303DLHCMag_InitTypeDef;
 /**
-  * @}
-  */
-  
+ * @}
+ */
+
 /** @defgroup STM32F3_DISCOVERY_LSM303DLHC_Exported_Constants
-  * @{
-  */
+ * @{
+ */
 #define LSM303DLHC_OK                       ((uint32_t) 0)
 #define LSM303DLHC_FAIL                     ((uint32_t) 0)
 
 /* Uncomment the following line to use the default LSM303DLHC_TIMEOUT_UserCallback() 
-   function implemented in stm32f3_discovery_lgd20.c file.
-   LSM303DLHC_TIMEOUT_UserCallback() function is called whenever a timeout condition 
-   occure during communication (waiting transmit data register empty flag(TXE)
-   or waiting receive data register is not empty flag (RXNE)). */   
+ function implemented in stm32f3_discovery_lgd20.c file.
+ LSM303DLHC_TIMEOUT_UserCallback() function is called whenever a timeout condition
+ occure during communication (waiting transmit data register empty flag(TXE)
+ or waiting receive data register is not empty flag (RXNE)). */
 /* #define USE_DEFAULT_TIMEOUT_CALLBACK */
 
 /* Maximum Timeout values for flags waiting loops. These timeouts are not based
-   on accurate values, they just guarantee that the application will not remain
-   stuck if the I2C communication is corrupted.
-   You may modify these timeout values depending on CPU frequency and application
-   conditions (interrupts routines ...). */   
+ on accurate values, they just guarantee that the application will not remain
+ stuck if the I2C communication is corrupted.
+ You may modify these timeout values depending on CPU frequency and application
+ conditions (interrupts routines ...). */
 #define LSM303DLHC_FLAG_TIMEOUT             ((uint32_t)0x1000)
 #define LSM303DLHC_LONG_TIMEOUT             ((uint32_t)(10 * LSM303DLHC_FLAG_TIMEOUT))  
 /**
-  * @brief  LSM303DLHC I2C Interface pins
-  */
+ * @brief  LSM303DLHC I2C Interface pins
+ */
 #define LSM303DLHC_I2C                       I2C1
 #define LSM303DLHC_I2C_CLK                   RCC_APB1Periph_I2C1
 
@@ -218,17 +214,17 @@ typedef struct
 #define MAG_I2C_ADDRESS                      0x3C
 
 /** @defgroup Acc_Power_Mode_selection 
-  * @{
-  */
+ * @{
+ */
 #define LSM303DLHC_NORMAL_MODE            ((uint8_t)0x00)
 #define LSM303DLHC_LOWPOWER_MODE          ((uint8_t)0x08)
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup Acc_OutPut_DataRate_Selection 
-  * @{
-  */
+ * @{
+ */
 #define LSM303DLHC_ODR_1_HZ                ((uint8_t)0x10)  /*!< Output Data Rate = 1 Hz */
 #define LSM303DLHC_ODR_10_HZ               ((uint8_t)0x20)  /*!< Output Data Rate = 10 Hz */
 #define LSM303DLHC_ODR_25_HZ               ((uint8_t)0x30)  /*!< Output Data Rate = 25 Hz */
@@ -240,129 +236,129 @@ typedef struct
 #define LSM303DLHC_ODR_1344_HZ             ((uint8_t)0x90)  /*!< Output Data Rate = 1344 Hz in Normal mode and 5376 Hz in Low Power Mode */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup Acc_Axes_Selection 
-  * @{
-  */
+ * @{
+ */
 #define LSM303DLHC_X_ENABLE                ((uint8_t)0x01)
 #define LSM303DLHC_Y_ENABLE                ((uint8_t)0x02)
 #define LSM303DLHC_Z_ENABLE                ((uint8_t)0x04)
 #define LSM303DLHC_AXES_ENABLE             ((uint8_t)0x07)
 #define LSM303DLHC_AXES_DISABLE            ((uint8_t)0x00)
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup Acc_High_Resolution
-  * @{
-  */
+ * @{
+ */
 #define LSM303DLHC_HR_ENABLE               ((uint8_t)0x08)
 #define LSM303DLHC_HR_DISABLE              ((uint8_t)0x00)
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup Acc_Full_Scale_Selection 
-  * @{
-  */
-#define LSM303DLHC_FULLSCALE_2G            ((uint8_t)0x00)  /*!< ±2 g */
-#define LSM303DLHC_FULLSCALE_4G            ((uint8_t)0x10)  /*!< ±4 g */
-#define LSM303DLHC_FULLSCALE_8G            ((uint8_t)0x20)  /*!< ±8 g */
-#define LSM303DLHC_FULLSCALE_16G           ((uint8_t)0x30)  /*!< ±16 g */
+ * @{
+ */
+#define LSM303DLHC_FULLSCALE_2G            ((uint8_t)0x00)  /*!< ï¿½2 g */
+#define LSM303DLHC_FULLSCALE_4G            ((uint8_t)0x10)  /*!< ï¿½4 g */
+#define LSM303DLHC_FULLSCALE_8G            ((uint8_t)0x20)  /*!< ï¿½8 g */
+#define LSM303DLHC_FULLSCALE_16G           ((uint8_t)0x30)  /*!< ï¿½16 g */
 /**
-  * @}
-  */
-  
+ * @}
+ */
+
 /** @defgroup Acc_Block_Data_Update 
-  * @{
-  */  
+ * @{
+ */
 #define LSM303DLHC_BlockUpdate_Continous   ((uint8_t)0x00) /*!< Continuos Update */
 #define LSM303DLHC_BlockUpdate_Single      ((uint8_t)0x80) /*!< Single Update: output registers not updated until MSB and LSB reading */
 /**
-  * @}
-  */
-  
+ * @}
+ */
+
 /** @defgroup Acc_Endian_Data_selection
-  * @{
-  */  
+ * @{
+ */
 #define LSM303DLHC_BLE_LSB                 ((uint8_t)0x00) /*!< Little Endian: data LSB @ lower address */
 #define LSM303DLHC_BLE_MSB	           ((uint8_t)0x40) /*!< Big Endian: data MSB @ lower address */
 /**
-  * @}
-  */
-  
+ * @}
+ */
+
 /** @defgroup Acc_Boot_Mode_selection 
-  * @{
-  */
+ * @{
+ */
 #define LSM303DLHC_BOOT_NORMALMODE         ((uint8_t)0x00)
 #define LSM303DLHC_BOOT_REBOOTMEMORY       ((uint8_t)0x80)
 /**
-  * @}
-  */  
- 
+ * @}
+ */
+
 /** @defgroup Acc_High_Pass_Filter_Mode 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_HPM_NORMAL_MODE_RES     ((uint8_t)0x00)
 #define LSM303DLHC_HPM_REF_SIGNAL          ((uint8_t)0x40)
 #define LSM303DLHC_HPM_NORMAL_MODE         ((uint8_t)0x80)
 #define LSM303DLHC_HPM_AUTORESET_INT       ((uint8_t)0xC0)
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup Acc_High_Pass_CUT OFF_Frequency 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_HPFCF_8                 ((uint8_t)0x00)
 #define LSM303DLHC_HPFCF_16                ((uint8_t)0x10)
 #define LSM303DLHC_HPFCF_32                ((uint8_t)0x20)
 #define LSM303DLHC_HPFCF_64                ((uint8_t)0x30)
 /**
-  * @}
-  */
-    
+ * @}
+ */
+
 /** @defgroup Acc_High_Pass_Filter_status 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_HIGHPASSFILTER_DISABLE  ((uint8_t)0x00)
 #define LSM303DLHC_HIGHPASSFILTER_ENABLE   ((uint8_t)0x08)
 /**
-  * @}
-  */
-  
+ * @}
+ */
+
 /** @defgroup Acc_High_Pass_Filter_Click_status 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_HPF_CLICK_DISABLE       ((uint8_t)0x00)
 #define LSM303DLHC_HPF_CLICK_ENABLE	       ((uint8_t)0x04)
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup Acc_High_Pass_Filter_AOI1_status 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_HPF_AOI1_DISABLE        ((uint8_t)0x00)
 #define LSM303DLHC_HPF_AOI1_ENABLE	       ((uint8_t)0x01)
 /**
-  * @}
-  */
-  
+ * @}
+ */
+
 /** @defgroup Acc_High_Pass_Filter_AOI2_status 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_HPF_AOI2_DISABLE        ((uint8_t)0x00)
 #define LSM303DLHC_HPF_AOI2_ENABLE	   ((uint8_t)0x02)
 /**
-  * @}
-  */ 
+ * @}
+ */
 
 /** @defgroup Acc_LSM303DLHC_Interrupt1_Configuration_definition
-  * @{
-  */
+ * @{
+ */
 #define LSM303DLHC_IT1_CLICK               ((uint8_t)0x80)
 #define LSM303DLHC_IT1_AOI1                ((uint8_t)0x40)
 #define LSM303DLHC_IT1_AOI2                ((uint8_t)0x20)
@@ -371,12 +367,12 @@ typedef struct
 #define LSM303DLHC_IT1_WTM                 ((uint8_t)0x04)
 #define LSM303DLHC_IT1_OVERRUN             ((uint8_t)0x02)
 /**
-  * @}
-  */  
- 
+ * @}
+ */
+
 /** @defgroup Acc_LSM303DLHC_Interrupt2_Configuration_definition
-  * @{
-  */
+ * @{
+ */
 #define LSM303DLHC_IT2_CLICK               ((uint8_t)0x80)
 #define LSM303DLHC_IT2_INT1                ((uint8_t)0x40)
 #define LSM303DLHC_IT2_INT2                ((uint8_t)0x20)
@@ -384,23 +380,23 @@ typedef struct
 #define LSM303DLHC_IT2_ACT                 ((uint8_t)0x08)
 #define LSM303DLHC_IT2_HLACTIVE            ((uint8_t)0x02)
 /**
-  * @}
-  */ 
+ * @}
+ */
 
 /** @defgroup Acc_INT_Combination_Status 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_OR_COMBINATION          ((uint8_t)0x00)  /*!< OR combination of enabled IRQs */
 #define LSM303DLHC_AND_COMBINATION	       ((uint8_t)0x80)  /*!< AND combination of enabled IRQs */
 #define LSM303DLHC_MOV_RECOGNITION         ((uint8_t)0x40)  /*!< 6D movement recognition */
 #define LSM303DLHC_POS_RECOGNITION	       ((uint8_t)0xC0)  /*!< 6D position recognition */
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup Acc_INT_Axes 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_Z_HIGH                  ((uint8_t)0x20)  /*!< Z High enabled IRQs */
 #define LSM303DLHC_Z_LOW	                 ((uint8_t)0x10)  /*!< Z low enabled IRQs */
 #define LSM303DLHC_Y_HIGH                  ((uint8_t)0x08)  /*!< Y High enabled IRQs */
@@ -408,12 +404,12 @@ typedef struct
 #define LSM303DLHC_X_HIGH                  ((uint8_t)0x02)  /*!< X High enabled IRQs */
 #define LSM303DLHC_X_LOW	                 ((uint8_t)0x01)  /*!< X low enabled IRQs */
 /**
-  * @}
-  */
-      
+ * @}
+ */
+
 /** @defgroup Acc_INT_Click 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_Z_DOUBLE_CLICK          ((uint8_t)0x20)  /*!< Z double click IRQs */
 #define LSM303DLHC_Z_SINGLE_CLICK	         ((uint8_t)0x10)  /*!< Z single click IRQs */
 #define LSM303DLHC_Y_DOUBLE_CLICK          ((uint8_t)0x08)  /*!< Y double click IRQs */
@@ -421,30 +417,30 @@ typedef struct
 #define LSM303DLHC_X_DOUBLE_CLICK          ((uint8_t)0x02)  /*!< X double click IRQs */
 #define LSM303DLHC_X_SINGLE_CLICK	         ((uint8_t)0x01)  /*!< X single click IRQs */
 /**
-  * @}
-  */
-  
+ * @}
+ */
+
 /** @defgroup Acc_INT1_Interrupt_status 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_INT1INTERRUPT_DISABLE   ((uint8_t)0x00)
 #define LSM303DLHC_INT1INTERRUPT_ENABLE	   ((uint8_t)0x80)
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup Acc_INT1_Interrupt_ActiveEdge 
-  * @{
-  */   
+ * @{
+ */
 #define LSM303DLHC_INT1INTERRUPT_LOW_EDGE  ((uint8_t)0x20)
 #define LSM303DLHC_INT1INTERRUPT_HIGH_EDGE ((uint8_t)0x00)
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup Mag_Data_Rate 
-  * @{
-  */ 
+ * @{
+ */
 #define LSM303DLHC_ODR_0_75_HZ              ((uint8_t) 0x00)  /*!< Output Data Rate = 0.75 Hz */
 #define LSM303DLHC_ODR_1_5_HZ               ((uint8_t) 0x04)  /*!< Output Data Rate = 1.5 Hz */
 #define LSM303DLHC_ODR_3_0_HZ               ((uint8_t) 0x08)  /*!< Output Data Rate = 3 Hz */
@@ -454,23 +450,23 @@ typedef struct
 #define LSM303DLHC_ODR_75_HZ                ((uint8_t) 0x18)  /*!< Output Data Rate = 75 Hz */
 #define LSM303DLHC_ODR_220_HZ               ((uint8_t) 0x1C)  /*!< Output Data Rate = 220 Hz */
 /**
-  * @}
-  */
- 
+ * @}
+ */
+
 /** @defgroup Mag_Full_Scale
-  * @{
-  */ 
-#define  LSM303DLHC_FS_1_3_GA               ((uint8_t) 0x20)  /*!< Full scale = ±1.3 Gauss */
-#define  LSM303DLHC_FS_1_9_GA               ((uint8_t) 0x40)  /*!< Full scale = ±1.9 Gauss */
-#define  LSM303DLHC_FS_2_5_GA               ((uint8_t) 0x60)  /*!< Full scale = ±2.5 Gauss */
-#define  LSM303DLHC_FS_4_0_GA               ((uint8_t) 0x80)  /*!< Full scale = ±4.0 Gauss */
-#define  LSM303DLHC_FS_4_7_GA               ((uint8_t) 0xA0)  /*!< Full scale = ±4.7 Gauss */
-#define  LSM303DLHC_FS_5_6_GA               ((uint8_t) 0xC0)  /*!< Full scale = ±5.6 Gauss */
-#define  LSM303DLHC_FS_8_1_GA               ((uint8_t) 0xE0)  /*!< Full scale = ±8.1 Gauss */
+ * @{
+ */
+#define  LSM303DLHC_FS_1_3_GA               ((uint8_t) 0x20)  /*!< Full scale = ï¿½1.3 Gauss */
+#define  LSM303DLHC_FS_1_9_GA               ((uint8_t) 0x40)  /*!< Full scale = ï¿½1.9 Gauss */
+#define  LSM303DLHC_FS_2_5_GA               ((uint8_t) 0x60)  /*!< Full scale = ï¿½2.5 Gauss */
+#define  LSM303DLHC_FS_4_0_GA               ((uint8_t) 0x80)  /*!< Full scale = ï¿½4.0 Gauss */
+#define  LSM303DLHC_FS_4_7_GA               ((uint8_t) 0xA0)  /*!< Full scale = ï¿½4.7 Gauss */
+#define  LSM303DLHC_FS_5_6_GA               ((uint8_t) 0xC0)  /*!< Full scale = ï¿½5.6 Gauss */
+#define  LSM303DLHC_FS_8_1_GA               ((uint8_t) 0xE0)  /*!< Full scale = ï¿½8.1 Gauss */
 /**
-  * @}
-  */ 
- 
+ * @}
+ */
+
 /**
  * @defgroup Magnetometer_Sensitivity              
  * @{
@@ -494,57 +490,62 @@ typedef struct
  */
 
 /** @defgroup Mag_Working_Mode
-  * @{
-  */ 
+ * @{
+ */
 #define LSM303DLHC_CONTINUOS_CONVERSION      ((uint8_t) 0x00)   /*!< Continuous-Conversion Mode */
 #define LSM303DLHC_SINGLE_CONVERSION         ((uint8_t) 0x01)   /*!< Single-Conversion Mode */
 #define LSM303DLHC_SLEEP                     ((uint8_t) 0x02)   /*!< Sleep Mode */                       
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup Mag_Temperature_Sensor
-  * @{
-  */ 
+ * @{
+ */
 #define LSM303DLHC_TEMPSENSOR_ENABLE         ((uint8_t) 0x80)   /*!< Temp sensor Enable */
 #define LSM303DLHC_TEMPSENSOR_DISABLE        ((uint8_t) 0x00)   /*!< Temp sensor Disable */
 /**                           
-  * @}
-  */
-    
+ * @}
+ */
+
 /** @defgroup STM32F3_DISCOVERY_LSM303DLHC_Exported_Functions
-  * @{
-  */
-/* Acc functions */  
+ * @{
+ */
+/* Acc functions */
 void LSM303DLHC_AccInit(LSM303DLHCAcc_InitTypeDef *LSM303DLHC_InitStruct);
 void LSM303DLHC_AccRebootCmd(void);
-void LSM303DLHC_AccFilterConfig(LSM303DLHCAcc_FilterConfigTypeDef *LSM303DLHC_FilterStruct) ;
+void LSM303DLHC_AccFilterConfig(
+		LSM303DLHCAcc_FilterConfigTypeDef *LSM303DLHC_FilterStruct);
 void LSM303DLHC_AccFilterCmd(uint8_t HighPassFilterState);
 void LSM303DLHC_AccFilterClickCmd(uint8_t HighPassFilterClickState);
 void LSM303DLHC_AccIT1Config(uint8_t LSM303DLHC_IT, FunctionalState NewState);
 void LSM303DLHC_AccIT2Config(uint8_t LSM303DLHC_IT, FunctionalState NewState);
-void LSM303DLHC_AccINT1InterruptConfig(uint8_t ITCombination, uint8_t ITAxes, FunctionalState NewState );
-void LSM303DLHC_AccINT2InterruptConfig(uint8_t ITCombination, uint8_t ITAxes, FunctionalState NewState );
+void LSM303DLHC_AccINT1InterruptConfig(uint8_t ITCombination, uint8_t ITAxes,
+		FunctionalState NewState);
+void LSM303DLHC_AccINT2InterruptConfig(uint8_t ITCombination, uint8_t ITAxes,
+		FunctionalState NewState);
 void LSM303DLHC_AccClickITConfig(uint8_t ITClick, FunctionalState NewState);
 uint8_t LSM303DLHC_AccGetDataStatus(void);
 
-/* Mag functions */ 
+/* Mag functions */
 void LSM303DLHC_MagInit(LSM303DLHCMag_InitTypeDef *LSM303DLHC_InitStruct);
 uint8_t LSM303DLHC_MagGetDataStatus(void);
 
 /* read write funtions */
-uint16_t LSM303DLHC_Write(uint8_t DeviceAddr, uint8_t RegAddr, uint8_t* pBuffer);
-uint16_t LSM303DLHC_Read(uint8_t DeviceAddr, uint8_t RegAddr,uint8_t* pBuffer, uint16_t NumByteToRead);
+uint16_t LSM303DLHC_Write(uint8_t DeviceAddr, uint8_t RegAddr,
+		uint8_t* pBuffer);
+uint16_t LSM303DLHC_Read(uint8_t DeviceAddr, uint8_t RegAddr, uint8_t* pBuffer,
+		uint16_t NumByteToRead);
 
 /* USER Callbacks: This is function for which prototype only is declared in
-   MEMS accelerometre driver and that should be implemented into user applicaiton. */  
+ MEMS accelerometre driver and that should be implemented into user applicaiton. */
 /* LSM303DLHC_TIMEOUT_UserCallback() function is called whenever a timeout condition 
-   occure during communication (waiting transmit data register empty flag(TXE)
-   or waiting receive data register is not empty flag (RXNE)).
-   You can use the default timeout callback implementation by uncommenting the 
-   define USE_DEFAULT_TIMEOUT_CALLBACK in stm32f3_discovery_LSM303DLHC.h file.
-   Typically the user implementation of this callback should reset MEMS peripheral
-   and re-initialize communication or in worst case reset all the application. */
+ occure during communication (waiting transmit data register empty flag(TXE)
+ or waiting receive data register is not empty flag (RXNE)).
+ You can use the default timeout callback implementation by uncommenting the
+ define USE_DEFAULT_TIMEOUT_CALLBACK in stm32f3_discovery_LSM303DLHC.h file.
+ Typically the user implementation of this callback should reset MEMS peripheral
+ and re-initialize communication or in worst case reset all the application. */
 uint32_t LSM303DLHC_TIMEOUT_UserCallback(void);
 
 #ifdef __cplusplus
@@ -553,20 +554,19 @@ uint32_t LSM303DLHC_TIMEOUT_UserCallback(void);
 
 #endif /* __STM32F3_DISCOVERY_LSM303DLHC_H */
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */ 
+ * @}
+ */
 
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/ 
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
