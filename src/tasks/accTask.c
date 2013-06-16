@@ -31,10 +31,11 @@ struct ACCState {
 	// result
 	volatile uint8_t RawData[10];
 
-	// State for DMA GyroReadOut
-	volatile enum GyroReadOutState {
-		SetInt2ToEmpty, FirstReadOut, ReadOut, SetInt2ToWatermark
-	} GyroReadOutState;
+	volatile struct ACCStateI2CState {
+		uint8_t RegAddrTMP, DeviceAddrTMP, finished;
+		uint16_t NumByteToReadTMP;
+		uint8_t *pBufferTMP;
+	} ACCStateI2CState;
 } ACCState;
 
 void ACC_configureDMA() {
@@ -111,13 +112,8 @@ void ACC_IOInit() {
 	NVIC_Init(&NVIC_InitStructure);
 }
 
-uint8_t RegAddrTMP;
-uint8_t DeviceAddrTMP;
-uint16_t NumByteToReadTMP;
-volatile uint8_t finished = 0;
-volatile uint8_t *pBufferTMP;
-
 void I2C1_EV_IRQHandler() {
+	/* TXIS Interrupt */
 	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_TXIS) == SET) {
 		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_TXI, DISABLE);
 		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_TXI);
@@ -126,11 +122,12 @@ void I2C1_EV_IRQHandler() {
 		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_TCI, ENABLE);
 
 		/* Send Register address */
-		I2C_SendData(LSM303DLHC_I2C, (uint8_t) RegAddrTMP);
+		I2C_SendData(LSM303DLHC_I2C, (uint8_t) ACCState.ACCStateI2CState.RegAddrTMP);
 
 		return;
 	}
 
+	/* TCI Interrupt */
 	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_TCI) == SET) {
 		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_TCI, DISABLE);
 		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_TCI);
@@ -145,24 +142,26 @@ void I2C1_EV_IRQHandler() {
 //		DMA_Cmd(DMA1_Channel7, ENABLE);
 
 		/* Configure slave address, nbytes, reload, end mode and start or stop generation */
-		I2C_TransferHandling(LSM303DLHC_I2C, DeviceAddrTMP, NumByteToReadTMP,
-				I2C_AutoEnd_Mode, I2C_Generate_Start_Read);
+		I2C_TransferHandling(LSM303DLHC_I2C, ACCState.ACCStateI2CState.DeviceAddrTMP,
+				ACCState.ACCStateI2CState.NumByteToReadTMP, I2C_AutoEnd_Mode,
+				I2C_Generate_Start_Read);
 
 		return;
 	}
 
+	/* RXI Interrupt */
 	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_RXI) == SET) {
 		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_RXI);
 
 		/* Read data from RXDR */
-		*pBufferTMP = I2C_ReceiveData(LSM303DLHC_I2C );
+		*ACCState.ACCStateI2CState.pBufferTMP = I2C_ReceiveData(LSM303DLHC_I2C );
 		/* Point to the next location where the byte read will be saved */
-		++pBufferTMP;
+		++ACCState.ACCStateI2CState.pBufferTMP;
 
 		/* Decrement the read bytes counter */
-		--NumByteToReadTMP;
+		--ACCState.ACCStateI2CState.NumByteToReadTMP;
 
-		if (NumByteToReadTMP == 0) {
+		if (ACCState.ACCStateI2CState.NumByteToReadTMP == 0) {
 			I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_RXI, DISABLE);
 
 			I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_STOPF);
@@ -172,12 +171,13 @@ void I2C1_EV_IRQHandler() {
 		return;
 	}
 
+	/* STOP signalized/detected */
 	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_STOPF) == SET) {
 		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_STOPF, DISABLE);
 		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_STOPF);
 
 		I2C_ClearFlag(LSM303DLHC_I2C, I2C_ICR_STOPCF );
-		finished = 1;
+		ACCState.ACCStateI2CState.finished = 1;
 		return;
 	}
 }
@@ -201,10 +201,10 @@ void DMA1_Channel7_IRQHandler(void) {
 uint16_t LSM303DLHC_ReadDMA(uint8_t DeviceAddr, uint8_t RegAddr,
 		uint8_t* pBuffer, uint16_t NumByteToRead) {
 
-	RegAddrTMP = RegAddr;
-	NumByteToReadTMP = NumByteToRead;
-	pBufferTMP = pBuffer;
-	DeviceAddrTMP = DeviceAddr;
+	ACCState.ACCStateI2CState.RegAddrTMP = RegAddr;
+	ACCState.ACCStateI2CState.NumByteToReadTMP = NumByteToRead;
+	ACCState.ACCStateI2CState.pBufferTMP = pBuffer;
+	ACCState.ACCStateI2CState.DeviceAddrTMP = DeviceAddr;
 
 	ACCState.i2cRXDMA.DMA_MemoryBaseAddr = (uint32_t) & pBuffer[0];
 
@@ -221,13 +221,13 @@ uint16_t LSM303DLHC_ReadDMA(uint8_t DeviceAddr, uint8_t RegAddr,
 
 	/* Wait until TXIS flag is set */
 	if (NumByteToRead > 1)
-		RegAddrTMP |= 0x80;
+		ACCState.ACCStateI2CState.RegAddrTMP |= 0x80;
 
-	finished = 0;
+	ACCState.ACCStateI2CState.finished = 0;
 	I2C_TransferHandling(LSM303DLHC_I2C, DeviceAddr, 1, I2C_SoftEnd_Mode,
 			I2C_Generate_Start_Write);
 
-	while (finished == 0) {
+	while (ACCState.ACCStateI2CState.finished == 0) {
 		if ((LSM303DLHC_Timeout--) == 0)
 			return LSM303DLHC_TIMEOUT_UserCallback();
 	}
@@ -241,7 +241,7 @@ uint16_t LSM303DLHC_ReadDMA(uint8_t DeviceAddr, uint8_t RegAddr,
  * @param  None
  * @retval None
  */
-void Demo_CompassConfig(void) {
+void ACC_CompassConfig(void) {
 	LSM303DLHCMag_InitTypeDef LSM303DLHC_InitStructure;
 	LSM303DLHCAcc_InitTypeDef LSM303DLHCAcc_InitStructure;
 	LSM303DLHCAcc_FilterConfigTypeDef LSM303DLHCFilter_InitStructure;
@@ -293,7 +293,7 @@ void EXTI4_IRQHandler() {
  * @param pnData: pointer to float buffer where to store data
  * @retval None
  */
-void Demo_CompassReadAcc(float* pfData) {
+void ACC_CompassReadAcc(float* pfData) {
 	int16_t pnRawData[3];
 	uint8_t ctrlx[2];
 	uint8_t buffer[6], cDivider;
@@ -359,7 +359,7 @@ void Demo_CompassReadAcc(float* pfData) {
  * @param  pfData: pointer to the data out
  * @retval None
  */
-void Demo_CompassReadMag(float* pfData) {
+void ACC_CompassReadMag(float* pfData) {
 	static uint8_t buffer[6] = { 0 };
 	uint8_t CTRLB = 0;
 	uint16_t Magn_Sensitivity_XY = 0, Magn_Sensitivity_Z = 0;
@@ -449,14 +449,14 @@ float roll = 0.0f, pitch = 0.0f, yaw = 0.0f;
 
 void accTask(void *pvParameters) {
 
-	Demo_CompassConfig();
+	ACC_CompassConfig();
 
 	while (1) {
 		vTaskDelay(700);
 
 		/* Read Compass data */
-		Demo_CompassReadMag(MagBuffer);
-		Demo_CompassReadAcc(AccBuffer);
+		ACC_CompassReadMag(MagBuffer);
+		ACC_CompassReadAcc(AccBuffer);
 
 		for (int i = 0; i < 3; i++)
 			AccBuffer[i] /= 100.0f;
