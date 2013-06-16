@@ -135,15 +135,14 @@ void I2C1_EV_IRQHandler() {
 		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_TCI, DISABLE);
 		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_TCI);
 
+		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_RXI);
+		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_RXI, ENABLE);
 
-//		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_RXI);
-//		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_RXI, ENABLE);
-
-		// Enable DMA
-		ACCState.i2cRXDMA.DMA_BufferSize = NumByteToReadTMP;
-		DMA_Init(DMA1_Channel7, &ACCState.i2cRXDMA);
-		I2C_DMACmd(LSM303DLHC_I2C, I2C_DMAReq_Rx, ENABLE);
-		DMA_Cmd(DMA1_Channel7, ENABLE);
+//		// Enable DMA
+//		ACCState.i2cRXDMA.DMA_BufferSize = NumByteToReadTMP;
+//		DMA_Init(DMA1_Channel7, &ACCState.i2cRXDMA);
+//		I2C_DMACmd(LSM303DLHC_I2C, I2C_DMAReq_Rx, ENABLE);
+//		DMA_Cmd(DMA1_Channel7, ENABLE);
 
 		/* Configure slave address, nbytes, reload, end mode and start or stop generation */
 		I2C_TransferHandling(LSM303DLHC_I2C, DeviceAddrTMP, NumByteToReadTMP,
@@ -152,31 +151,30 @@ void I2C1_EV_IRQHandler() {
 		return;
 	}
 
-//	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_RXI) == SET) {
-//		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_RXI);
-//
-//		/* Read data from RXDR */
-//		*pBufferTMP = I2C_ReceiveData(LSM303DLHC_I2C );
-//		/* Point to the next location where the byte read will be saved */
-//		++pBufferTMP;
-//
-//		/* Decrement the read bytes counter */
-//		--NumByteToReadTMP;
-//
-//		if (NumByteToReadTMP == 0) {
-//			I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_RXI, DISABLE);
-//
-//			I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_STOPF);
-//			I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_STOPF, ENABLE);
-//		}
-//
-//		return;
-//	}
+	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_RXI) == SET) {
+		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_RXI);
+
+		/* Read data from RXDR */
+		*pBufferTMP = I2C_ReceiveData(LSM303DLHC_I2C );
+		/* Point to the next location where the byte read will be saved */
+		++pBufferTMP;
+
+		/* Decrement the read bytes counter */
+		--NumByteToReadTMP;
+
+		if (NumByteToReadTMP == 0) {
+			I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_RXI, DISABLE);
+
+			I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_STOPF);
+			I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_STOPF, ENABLE);
+		}
+
+		return;
+	}
 
 	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_STOPF) == SET) {
 		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_STOPF, DISABLE);
 		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_STOPF);
-
 
 		I2C_ClearFlag(LSM303DLHC_I2C, I2C_ICR_STOPCF );
 		finished = 1;
@@ -208,7 +206,7 @@ uint16_t LSM303DLHC_ReadDMA(uint8_t DeviceAddr, uint8_t RegAddr,
 	pBufferTMP = pBuffer;
 	DeviceAddrTMP = DeviceAddr;
 
-	ACCState.i2cRXDMA.DMA_MemoryBaseAddr = (uint32_t) &pBuffer[0];
+	ACCState.i2cRXDMA.DMA_MemoryBaseAddr = (uint32_t) & pBuffer[0];
 
 	/* Test on BUSY Flag */
 	LSM303DLHC_Timeout = LSM303DLHC_LONG_TIMEOUT;
@@ -282,7 +280,7 @@ void Demo_CompassConfig(void) {
 
 	// Enable Interrupt for Int1 Watermark Threshold (data ready for readout)
 	ACC_IOInit();
-	ACC_configureDMA();
+	//ACC_configureDMA();
 	// TODO: Enable Interrupt for Watermarks and FIFO Mode
 }
 
