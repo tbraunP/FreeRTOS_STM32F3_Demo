@@ -48,7 +48,7 @@ struct GyroState {
 uint8_t RequestGyro[] = { (L3GD20_OUT_X_L_ADDR | READWRITE_CMD
 		| MULTIPLEBYTE_CMD ), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-void configureDMA() {
+void Gyro_configureDMA() {
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
 
 	// configure TX DMA
@@ -106,7 +106,7 @@ void configureDMA() {
  * @param  None
  * @retval None
  */
-void GyroConfig(void) {
+void Gyro_Config(void) {
 	GyroState.waterMark = 10;
 
 	/* Configure Mems L3GD20 */
@@ -132,7 +132,7 @@ void GyroConfig(void) {
 	L3GD20_FilterCmd(L3GD20_HIGHPASSFILTER_ENABLE );
 
 	// Set up and enable DMA Requests
-	configureDMA();
+	Gyro_configureDMA();
 
 	// Enable Interrupt for Int2 Watermark Threshold (data ready for readout)
 	/* Enable SYSCFG clock */
@@ -198,7 +198,7 @@ void EXTI1_IRQHandler() {
 	DMA_Cmd(DMA1_Channel3, ENABLE);
 }
 
-void handleData() {
+void Gyro_handleData() {
 	static int i = 0;
 //	float measure[6];
 //	decodeGyroRead(&GyroState.GyroIn[1], measure);
@@ -223,7 +223,7 @@ void DMA1_Channel2_IRQHandler(void) {
 	DMA_ClearITPendingBit(DMA1_IT_TC2);
 
 	// handle data
-	handleData();
+	Gyro_handleData();
 
 	if (GyroState.dataRead > 1) {
 		--GyroState.dataRead;
@@ -251,7 +251,7 @@ void gyroTask(void *pvParameters) {
 
 	GyroState.gyroQueue = xQueueCreate( 10, sizeof( GyroRawData_t ) );
 
-	GyroConfig();
+	Gyro_Config();
 
 	//int i = 0;
 	// Data read in DMA Handler
