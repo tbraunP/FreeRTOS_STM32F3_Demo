@@ -7,6 +7,8 @@
 #include "hw/stm32f3_discovery_lsm303dlhc.h"
 #include "hw/stm32f3_discovery_l3gd20.h"
 
+extern volatile uint32_t LSM303DLHC_Timeout;
+
 #define ABS(x)         (x < 0) ? (-x) : x
 
 #define L3G_Sensitivity_250dps     (float)   114.285f         /*!< gyroscope sensitivity with 250 dps full scale [LSB/dps] */
@@ -27,13 +29,44 @@ struct ACCState {
 	DMA_InitTypeDef i2cRXDMA;
 
 	// result
-	volatile uint8_t ACCIn[8];
+	volatile uint8_t RawData[10];
 
 	// State for DMA GyroReadOut
 	volatile enum GyroReadOutState {
 		SetInt2ToEmpty, FirstReadOut, ReadOut, SetInt2ToWatermark
 	} GyroReadOutState;
 } ACCState;
+
+void ACC_configureDMA() {
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+
+	// DMA Configuration for receiver
+	DMA_DeInit(DMA1_Channel7 );
+	ACCState.i2cRXDMA.DMA_BufferSize = 7;
+	ACCState.i2cRXDMA.DMA_MemoryBaseAddr = (uint32_t) & ACCState.RawData[0];
+	//uart_state.uartTXDMA.DMA_MemoryBaseAddr = (uint32_t) value;
+	ACCState.i2cRXDMA.DMA_PeripheralBaseAddr = (uint32_t) & I2C1 ->RXDR;
+	ACCState.i2cRXDMA.DMA_DIR = DMA_DIR_PeripheralSRC;
+	ACCState.i2cRXDMA.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	ACCState.i2cRXDMA.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	ACCState.i2cRXDMA.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
+	ACCState.i2cRXDMA.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	ACCState.i2cRXDMA.DMA_Mode = DMA_Mode_Normal;
+	ACCState.i2cRXDMA.DMA_Priority = DMA_Priority_Medium;
+	ACCState.i2cRXDMA.DMA_M2M = DMA_M2M_Disable;
+
+	// Enable DMA Finished Interrupt
+	DMA_ClearITPendingBit(DMA1_IT_TC7);
+	DMA_ITConfig(DMA1_Channel7, DMA_IT_TC, ENABLE);
+	DMA_Init(DMA1_Channel7, &ACCState.i2cRXDMA);
+
+	NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel7_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x9;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+}
 
 void ACC_IOInit() {
 	/* Configure GPIO PINs to detect Interrupts */
@@ -61,13 +94,148 @@ void ACC_IOInit() {
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	/* Enable and set EXTI4 Interrupt to the lowest priority */
+	/* Enable Interrupt */
 	NVIC_InitTypeDef NVIC_InitStructure;
 	NVIC_InitStructure.NVIC_IRQChannel = LSM303DLHC_I2C_INT1_EXTI_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x10;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
+
+	/* I2C Interrupts */
+	//NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_InitStructure.NVIC_IRQChannel = I2C1_EV_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0xA;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+}
+
+uint8_t RegAddrTMP;
+uint8_t DeviceAddrTMP;
+uint16_t NumByteToReadTMP;
+volatile uint8_t finished = 0;
+volatile uint8_t *pBufferTMP;
+
+void I2C1_EV_IRQHandler() {
+	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_TXIS) == SET) {
+		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_TXI, DISABLE);
+		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_TXI);
+
+		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_TCI);
+		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_TCI, ENABLE);
+
+		/* Send Register address */
+		I2C_SendData(LSM303DLHC_I2C, (uint8_t) RegAddrTMP);
+
+		return;
+	}
+
+	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_TCI) == SET) {
+		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_TCI, DISABLE);
+		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_TCI);
+
+
+//		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_RXI);
+//		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_RXI, ENABLE);
+
+		// Enable DMA
+		ACCState.i2cRXDMA.DMA_BufferSize = NumByteToReadTMP;
+		DMA_Init(DMA1_Channel7, &ACCState.i2cRXDMA);
+		I2C_DMACmd(LSM303DLHC_I2C, I2C_DMAReq_Rx, ENABLE);
+		DMA_Cmd(DMA1_Channel7, ENABLE);
+
+		/* Configure slave address, nbytes, reload, end mode and start or stop generation */
+		I2C_TransferHandling(LSM303DLHC_I2C, DeviceAddrTMP, NumByteToReadTMP,
+				I2C_AutoEnd_Mode, I2C_Generate_Start_Read);
+
+		return;
+	}
+
+//	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_RXI) == SET) {
+//		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_RXI);
+//
+//		/* Read data from RXDR */
+//		*pBufferTMP = I2C_ReceiveData(LSM303DLHC_I2C );
+//		/* Point to the next location where the byte read will be saved */
+//		++pBufferTMP;
+//
+//		/* Decrement the read bytes counter */
+//		--NumByteToReadTMP;
+//
+//		if (NumByteToReadTMP == 0) {
+//			I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_RXI, DISABLE);
+//
+//			I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_STOPF);
+//			I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_STOPF, ENABLE);
+//		}
+//
+//		return;
+//	}
+
+	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_STOPF) == SET) {
+		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_STOPF, DISABLE);
+		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_STOPF);
+
+
+		I2C_ClearFlag(LSM303DLHC_I2C, I2C_ICR_STOPCF );
+		finished = 1;
+		return;
+	}
+}
+
+void DMA1_Channel7_IRQHandler(void) {
+	I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_STOPF);
+	I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_STOPF, ENABLE);
+
+	DMA_Cmd(DMA1_Channel7, DISABLE);
+	DMA_ClearITPendingBit(DMA1_IT_TC7);
+}
+
+/**
+ * @brief  Reads a block of data from the LSM303DLHC.
+ * @param  DeviceAddr : specifies the slave address to be programmed(ACC_I2C_ADDRESS or MAG_I2C_ADDRESS).
+ * @param  RegAddr : specifies the LSM303DLHC internal address register to read from.
+ * @param  pBuffer : pointer to the buffer that receives the data read from the LSM303DLH.
+ * @param  NumByteToRead : number of bytes to read from the LSM303DLH ( NumByteToRead >1  only for the Mgnetometer readinf).
+ * @retval LSM303DLHC register value
+ */
+uint16_t LSM303DLHC_ReadDMA(uint8_t DeviceAddr, uint8_t RegAddr,
+		uint8_t* pBuffer, uint16_t NumByteToRead) {
+
+	RegAddrTMP = RegAddr;
+	NumByteToReadTMP = NumByteToRead;
+	pBufferTMP = pBuffer;
+	DeviceAddrTMP = DeviceAddr;
+
+	ACCState.i2cRXDMA.DMA_MemoryBaseAddr = (uint32_t) &pBuffer[0];
+
+	/* Test on BUSY Flag */
+	LSM303DLHC_Timeout = LSM303DLHC_LONG_TIMEOUT;
+	while (I2C_GetFlagStatus(LSM303DLHC_I2C, I2C_ISR_BUSY ) != RESET) {
+		if ((LSM303DLHC_Timeout--) == 0)
+			return LSM303DLHC_TIMEOUT_UserCallback();
+	}
+
+	/* Configure slave address, nbytes, reload, end mode and start or stop generation */
+	I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_TXI);
+	I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_TXI, ENABLE);
+
+	/* Wait until TXIS flag is set */
+	if (NumByteToRead > 1)
+		RegAddrTMP |= 0x80;
+
+	finished = 0;
+	I2C_TransferHandling(LSM303DLHC_I2C, DeviceAddr, 1, I2C_SoftEnd_Mode,
+			I2C_Generate_Start_Write);
+
+	while (finished == 0) {
+		if ((LSM303DLHC_Timeout--) == 0)
+			return LSM303DLHC_TIMEOUT_UserCallback();
+	}
+
+	/* If all operations OK */
+	return LSM303DLHC_OK ;
 }
 
 /**
@@ -114,7 +282,7 @@ void Demo_CompassConfig(void) {
 
 	// Enable Interrupt for Int1 Watermark Threshold (data ready for readout)
 	ACC_IOInit();
-
+	ACC_configureDMA();
 	// TODO: Enable Interrupt for Watermarks and FIFO Mode
 }
 
@@ -135,8 +303,8 @@ void Demo_CompassReadAcc(float* pfData) {
 	float LSM_Acc_Sensitivity = LSM_Acc_Sensitivity_2g;
 
 	/* Read the register content */
-	LSM303DLHC_Read(ACC_I2C_ADDRESS, LSM303DLHC_CTRL_REG4_A, ctrlx, 2);
-	LSM303DLHC_Read(ACC_I2C_ADDRESS, LSM303DLHC_OUT_X_L_A, buffer, 6);
+	LSM303DLHC_ReadDMA(ACC_I2C_ADDRESS, LSM303DLHC_CTRL_REG4_A, ctrlx, 2);
+	LSM303DLHC_ReadDMA(ACC_I2C_ADDRESS, LSM303DLHC_OUT_X_L_A, buffer, 6);
 
 	if (ctrlx[1] & 0x40)
 		cDivider = 64;
@@ -208,7 +376,7 @@ void Demo_CompassReadMag(float* pfData) {
 //	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_Z_H_M, buffer + 4, 1);
 //	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_Z_L_M, buffer + 5, 1);
 
-	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_X_H_M, buffer, 6);
+	LSM303DLHC_ReadDMA(MAG_I2C_ADDRESS, LSM303DLHC_OUT_X_H_M, buffer, 6);
 
 	// now we have to resort the entries of buffer
 	uint8_t tmp[2];
@@ -268,6 +436,7 @@ void Demo_CompassReadMag(float* pfData) {
  * @retval None.
  */
 uint32_t LSM303DLHC_TIMEOUT_UserCallback(void) {
+	printf("LSM303DLHC_TIMEOUT\n");
 	return 0;
 }
 
@@ -285,7 +454,7 @@ void accTask(void *pvParameters) {
 	Demo_CompassConfig();
 
 	while (1) {
-		vTaskDelay(500);
+		vTaskDelay(700);
 
 		/* Read Compass data */
 		Demo_CompassReadMag(MagBuffer);
