@@ -61,7 +61,7 @@ void ACC_IOInit() {
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	/* Enable and set EXTI0 Interrupt to the lowest priority */
+	/* Enable and set EXTI4 Interrupt to the lowest priority */
 	NVIC_InitTypeDef NVIC_InitStructure;
 	NVIC_InitStructure.NVIC_IRQChannel = LSM303DLHC_I2C_INT1_EXTI_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x10;
@@ -91,7 +91,7 @@ void Demo_CompassConfig(void) {
 	LSM303DLHCAcc_InitStructure.Power_Mode = LSM303DLHC_NORMAL_MODE;
 	LSM303DLHCAcc_InitStructure.AccOutput_DataRate = LSM303DLHC_ODR_50_HZ;
 	LSM303DLHCAcc_InitStructure.Axes_Enable = LSM303DLHC_AXES_ENABLE;
-	LSM303DLHCAcc_InitStructure.AccFull_Scale = LSM303DLHC_FULLSCALE_2G;
+	LSM303DLHCAcc_InitStructure.AccFull_Scale = LSM303DLHC_FULLSCALE_4G;
 	LSM303DLHCAcc_InitStructure.BlockData_Update =
 			LSM303DLHC_BlockUpdate_Continous;
 	LSM303DLHCAcc_InitStructure.Endianness = LSM303DLHC_BLE_LSB;
@@ -198,14 +198,29 @@ void Demo_CompassReadMag(float* pfData) {
 	uint8_t CTRLB = 0;
 	uint16_t Magn_Sensitivity_XY = 0, Magn_Sensitivity_Z = 0;
 	uint8_t i = 0;
+	// todo remove, since this is static config
 	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_CRB_REG_M, &CTRLB, 1);
 
-	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_X_H_M, buffer, 1);
-	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_X_L_M, buffer + 1, 1);
-	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_Y_H_M, buffer + 2, 1);
-	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_Y_L_M, buffer + 3, 1);
-	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_Z_H_M, buffer + 4, 1);
-	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_Z_L_M, buffer + 5, 1);
+//	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_X_H_M, buffer, 1);
+//	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_X_L_M, buffer + 1, 1);
+//	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_Y_H_M, buffer + 2, 1);
+//	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_Y_L_M, buffer + 3, 1);
+//	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_Z_H_M, buffer + 4, 1);
+//	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_Z_L_M, buffer + 5, 1);
+
+	LSM303DLHC_Read(MAG_I2C_ADDRESS, LSM303DLHC_OUT_X_H_M, buffer, 6);
+
+	// now we have to resort the entries of buffer
+	uint8_t tmp[2];
+	tmp[0] = buffer[4];
+	tmp[1] = buffer[5];
+
+	buffer[4] = buffer[2];
+	buffer[5] = buffer[3];
+
+	buffer[2] = tmp[0];
+	buffer[3] = tmp[1];
+
 	/* Switch the sensitivity set in the CRTLB*/
 	switch (CTRLB & 0xE0) {
 	case LSM303DLHC_FS_1_3_GA :
@@ -260,10 +275,10 @@ uint32_t LSM303DLHC_TIMEOUT_UserCallback(void) {
  * Internal variables
  */
 float MagBuffer[3] = { 0.0f }, AccBuffer[3] = { 0.0f }, Buffer[3] = { 0.0f };
-float fNormAcc, fSinRoll, fCosRoll, fSinPitch, fCosPitch = 0.0f, RollAng = 0.0f,
-		PitchAng = 0.0f;
+float fNormAcc, fSinRoll, fCosRoll, fSinPitch, fCosPitch = 0.0f, fSinYaw,
+		fCosYaw, RollAng = 0.0f, PitchAng = 0.0f;
 float fTiltedX, fTiltedY = 0.0f, HeadingValue = 0.0f;
-float roll = 0.0f, pitch = 0.0f;
+float roll = 0.0f, pitch = 0.0f, yaw = 0.0f;
 
 void accTask(void *pvParameters) {
 
@@ -283,14 +298,18 @@ void accTask(void *pvParameters) {
 				(AccBuffer[0] * AccBuffer[0]) + (AccBuffer[1] * AccBuffer[1])
 						+ (AccBuffer[2] * AccBuffer[2]));
 
-		fSinRoll = -AccBuffer[1] / fNormAcc;
-		fCosRoll = sqrtf(1.0 - (fSinRoll * fSinRoll));
+		fCosRoll = -AccBuffer[1] / fNormAcc;
+		fSinRoll = sqrtf(1.0 - (fCosRoll * fCosRoll));
 
-		fSinPitch = AccBuffer[0] / fNormAcc;
-		fCosPitch = sqrtf(1.0 - (fSinPitch * fSinPitch));
+		fCosPitch = AccBuffer[0] / fNormAcc;
+		fSinPitch = sqrtf(1.0 - (fCosPitch * fCosPitch));
+
+		fCosYaw = AccBuffer[2] / fNormAcc;
+		fSinYaw = sqrtf(1.0 - (fCosYaw * fCosYaw));
 
 		roll = atan2f(fSinRoll, fCosRoll) * 180 / PI;
 		pitch = atan2f(fSinPitch, fCosPitch) * 180 / PI;
+		yaw = atan2f(fSinYaw, fCosYaw) * 180 / PI;
 
 		if (fSinRoll > 0) {
 			if (fCosRoll > 0) {
@@ -339,7 +358,6 @@ void accTask(void *pvParameters) {
 			HeadingValue = HeadingValue + 360;
 		}
 
-		printf("ACC: Roll: %f, Pitch: %f, Yaw: %f\n", roll, pitch,
-				HeadingValue);
+		printf("ACC: Roll: %f, Pitch: %f, Yaw: %f\n", roll, pitch, yaw);
 	}
 }
