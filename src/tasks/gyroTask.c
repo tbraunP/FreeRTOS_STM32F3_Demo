@@ -6,6 +6,9 @@
  */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
+
+#include <string.h>
 #include "gyroTask.h"
 #include "hw/stm32f3_discovery_l3gd20.h"
 
@@ -14,6 +17,10 @@
 #define L3G_Sensitivity_2000dps    (float)    14.285f	      /*!< gyroscope sensitivity with 2000 dps full scale [LSB/dps] */
 
 void decodeGyroRead(uint8_t* inputBuffer, float* pfData);
+
+typedef struct GyroRawData_t {
+	uint8_t GyroRawData[7];
+} GyroRawData_t;
 
 struct GyroState {
 	L3GD20_InitTypeDef L3GD20_InitStructure;
@@ -31,6 +38,8 @@ struct GyroState {
 	volatile enum GyroReadOutState {
 		SetInt2ToEmpty, FirstReadOut, ReadOut, SetInt2ToWatermark
 	} GyroReadOutState;
+
+	xQueueHandle gyroQueue;
 } GyroState;
 
 /**
@@ -171,14 +180,18 @@ void EXTI1_IRQHandler() {
 	/* Clear the EXTI line 0 pending bit */
 	EXTI_ClearITPendingBit(L3GD20_SPI_INT2_EXTI_LINE);
 
-	L3GD20_CS_LOW();
-
 	// start reading and writing
 	GyroState.dataRead = GyroState.waterMark;
 
 	// DMA Request: Always call DMA_Init and DMA_CMD
 	DMA_Init(DMA1_Channel3, &GyroState.spiTXDMA);
 	DMA_Init(DMA1_Channel2, &GyroState.spiRXDMA);
+
+	// let line some time high
+	L3GD20_CS_LOW();
+	L3GD20_CS_LOW();
+	L3GD20_CS_LOW();
+	// wait to be sure line is low and device notices this
 
 	// gogogo, enable receive and than send
 	DMA_Cmd(DMA1_Channel2, ENABLE);
@@ -187,11 +200,17 @@ void EXTI1_IRQHandler() {
 
 void handleData() {
 	static int i = 0;
-	float measure[6];
-	decodeGyroRead(&GyroState.GyroIn[1], measure);
-	if (i == 1500) {
-		printf("Gyro %f, %f, %f\n", measure[0], measure[1], measure[2]);
+//	float measure[6];
+//	decodeGyroRead(&GyroState.GyroIn[1], measure);
+	if (i == 1000) {
+		//printf("Gyro %f, %f, %f\n", measure[0], measure[1], measure[2]);
 		i = 0;
+
+		// copy data to queue
+		GyroRawData_t rawData;
+		memcpy(rawData.GyroRawData, (void*) &GyroState.GyroIn[1], 7);
+		xQueueSendFromISR(GyroState.gyroQueue, &rawData, NULL);
+
 	}
 	++i;
 }
@@ -229,25 +248,24 @@ void DMA1_Channel2_IRQHandler(void) {
 
 void gyroTask(void *pvParameters) {
 	printf("GyroTaks started\n");
+
+	GyroState.gyroQueue = xQueueCreate( 10, sizeof( GyroRawData_t ) );
+
 	GyroConfig();
 
-	int i = 0;
+	//int i = 0;
+	// Data read in DMA Handler
 	float measure[3];
+	GyroRawData_t rawData;
 
 	for (;;) {
 		printf("GyroTaks working\n");
 		// check for watermark
-		if (L3GD20_SPI_INT2_GPIO_PORT ->IDR & L3GD20_SPI_INT2_PIN) {
-//			Demo_GyroReadAngRate(measure);
-			printf("DataReady\n");
-//			++i;
-		} else {
-//			printf("%d - Gyro %f, %f, %f\n", i, measure[0], measure[1],
-//					measure[2]);
-//			i = 0;
-//			printf("Not ready\n");
+		if (xQueueReceive( GyroState.gyroQueue, &( rawData ), ( portTickType ) 2500 )) {
+			decodeGyroRead(rawData.GyroRawData, measure);
+			printf("Gyro %f, %f, %f\n", measure[0], measure[1], measure[2]);
 		}
-		vTaskDelay(2500);
+		//vTaskDelay(2500);
 	}
 }
 

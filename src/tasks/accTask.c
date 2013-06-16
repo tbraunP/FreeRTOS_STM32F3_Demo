@@ -19,6 +19,57 @@
 #define LSM_Acc_Sensitivity_8g     (float)     0.25f           /*!< accelerometer sensitivity with 8 g full scale [LSB/mg] */
 #define LSM_Acc_Sensitivity_16g    (float)     0.0834f         /*!< accelerometer sensitivity with 12 g full scale [LSB/mg] */
 
+struct ACCState {
+	int waterMark;
+	volatile int dataRead;
+
+	// I2C DMA
+	DMA_InitTypeDef i2cRXDMA;
+
+	// result
+	volatile uint8_t ACCIn[8];
+
+	// State for DMA GyroReadOut
+	volatile enum GyroReadOutState {
+		SetInt2ToEmpty, FirstReadOut, ReadOut, SetInt2ToWatermark
+	} GyroReadOutState;
+} ACCState;
+
+void ACC_IOInit() {
+	/* Configure GPIO PINs to detect Interrupts */
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOE, ENABLE);
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Pin = LSM303DLHC_I2C_INT1_PIN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(LSM303DLHC_I2C_INT1_GPIO_PORT, &GPIO_InitStructure);
+
+	/* Enable SYSCFG clock */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+
+	/* Connect EXTI4 Line to PA0 pin */
+	SYSCFG_EXTILineConfig(LSM303DLHC_I2C_INT1_EXTI_PORT_SOURCE,
+			LSM303DLHC_I2C_INT1_EXTI_PIN_SOURCE);
+
+	/* Configure EXTI4 line */
+	EXTI_InitTypeDef EXTI_InitStructure;
+	EXTI_InitStructure.EXTI_Line = LSM303DLHC_I2C_INT1_EXTI_LINE;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	/* Enable and set EXTI0 Interrupt to the lowest priority */
+	NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_InitStructure.NVIC_IRQChannel = LSM303DLHC_I2C_INT1_EXTI_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x10;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+}
+
 /**
  * @brief  Configure the Mems to compass application.
  * @param  None
@@ -62,40 +113,9 @@ void Demo_CompassConfig(void) {
 	LSM303DLHC_AccFilterConfig(&LSM303DLHCFilter_InitStructure);
 
 	// Enable Interrupt for Int1 Watermark Threshold (data ready for readout)
-	/* Configure GPIO PINs to detect Interrupts */
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOE, ENABLE);
-	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin = LSM303DLHC_I2C_INT1_PIN;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(LSM303DLHC_I2C_INT1_GPIO_PORT, &GPIO_InitStructure);
+	ACC_IOInit();
 
-	/* Enable SYSCFG clock */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-
-	/* Connect EXTI0 Line to PA0 pin */
-	SYSCFG_EXTILineConfig(LSM303DLHC_I2C_INT1_EXTI_PORT_SOURCE,
-			LSM303DLHC_I2C_INT1_EXTI_PIN_SOURCE);
-
-	/* Configure EXTI0 line */
-	EXTI_InitTypeDef EXTI_InitStructure;
-	EXTI_InitStructure.EXTI_Line = LSM303DLHC_I2C_INT1_EXTI_LINE;
-	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);
-
-	/* Enable and set EXTI0 Interrupt to the lowest priority */
-	NVIC_InitTypeDef NVIC_InitStructure;
-	NVIC_InitStructure.NVIC_IRQChannel = LSM303DLHC_I2C_INT1_EXTI_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x10;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-
-	// TODO: Enable Interrupt for Watermark
+	// TODO: Enable Interrupt for Watermarks and FIFO Mode
 }
 
 void EXTI4_IRQHandler() {
@@ -243,7 +263,7 @@ float MagBuffer[3] = { 0.0f }, AccBuffer[3] = { 0.0f }, Buffer[3] = { 0.0f };
 float fNormAcc, fSinRoll, fCosRoll, fSinPitch, fCosPitch = 0.0f, RollAng = 0.0f,
 		PitchAng = 0.0f;
 float fTiltedX, fTiltedY = 0.0f, HeadingValue = 0.0f;
-float roll=0.0f, pitch = 0.0f;
+float roll = 0.0f, pitch = 0.0f;
 
 void accTask(void *pvParameters) {
 
@@ -259,43 +279,44 @@ void accTask(void *pvParameters) {
 		for (int i = 0; i < 3; i++)
 			AccBuffer[i] /= 100.0f;
 
-		fNormAcc = sqrt(
+		fNormAcc = sqrtf(
 				(AccBuffer[0] * AccBuffer[0]) + (AccBuffer[1] * AccBuffer[1])
 						+ (AccBuffer[2] * AccBuffer[2]));
 
 		fSinRoll = -AccBuffer[1] / fNormAcc;
-		fCosRoll = sqrt(1.0 - (fSinRoll * fSinRoll));
+		fCosRoll = sqrtf(1.0 - (fSinRoll * fSinRoll));
+
 		fSinPitch = AccBuffer[0] / fNormAcc;
-		fCosPitch = sqrt(1.0 - (fSinPitch * fSinPitch));
-		
+		fCosPitch = sqrtf(1.0 - (fSinPitch * fSinPitch));
+
 		roll = atan2f(fSinRoll, fCosRoll) * 180 / PI;
 		pitch = atan2f(fSinPitch, fCosPitch) * 180 / PI;
-		
+
 		if (fSinRoll > 0) {
 			if (fCosRoll > 0) {
-				RollAng = acos(fCosRoll) * 180 / PI;
+				RollAng = acosf(fCosRoll) * 180 / PI;
 			} else {
-				RollAng = acos(fCosRoll) * 180 / PI + 180;
+				RollAng = acosf(fCosRoll) * 180 / PI + 180;
 			}
 		} else {
 			if (fCosRoll > 0) {
-				RollAng = acos(fCosRoll) * 180 / PI + 360;
+				RollAng = acosf(fCosRoll) * 180 / PI + 360;
 			} else {
-				RollAng = acos(fCosRoll) * 180 / PI + 180;
+				RollAng = acosf(fCosRoll) * 180 / PI + 180;
 			}
 		}
 
 		if (fSinPitch > 0) {
 			if (fCosPitch > 0) {
-				PitchAng = acos(fCosPitch) * 180 / PI;
+				PitchAng = acosf(fCosPitch) * 180 / PI;
 			} else {
-				PitchAng = acos(fCosPitch) * 180 / PI + 180;
+				PitchAng = acosf(fCosPitch) * 180 / PI + 180;
 			}
 		} else {
 			if (fCosPitch > 0) {
-				PitchAng = acos(fCosPitch) * 180 / PI + 360;
+				PitchAng = acosf(fCosPitch) * 180 / PI + 360;
 			} else {
-				PitchAng = acos(fCosPitch) * 180 / PI + 180;
+				PitchAng = acosf(fCosPitch) * 180 / PI + 180;
 			}
 		}
 

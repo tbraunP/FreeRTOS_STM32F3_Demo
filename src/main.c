@@ -137,10 +137,10 @@ int main(void) {
 		STM_EVAL_LEDInit(i);
 
 	// start freeRTOS
-	//xTaskCreate(accTask, (signed char* )"accTask", 1024, NULL, 3, NULL);
-	//xTaskCreate(gyroTask, (signed char* )"GyroTask", 1024, NULL, 3, NULL);
-	xTaskCreate(motorControlTask, (signed char* )"MotorTask", 1024, NULL, 4,
-			NULL);
+	xTaskCreate(accTask, (signed char* )"accTask", 1024, NULL, 3, NULL);
+	xTaskCreate(gyroTask, (signed char* )"GyroTask", 1024, NULL, 4, NULL);
+//	xTaskCreate(motorControlTask, (signed char* )"MotorTask", 1024, NULL, 2,
+//			NULL);
 	vTaskStartScheduler();
 }
 
