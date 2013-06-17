@@ -26,7 +26,7 @@ struct ACCState {
 	volatile int dataRead;
 
 	// I2C DMA
-	DMA_InitTypeDef i2cRXDMA;
+	//DMA_InitTypeDef i2cRXDMA;
 
 	// result
 	volatile uint8_t RawData[10];
@@ -38,36 +38,36 @@ struct ACCState {
 	} ACCStateI2CState;
 } ACCState;
 
-void ACC_configureDMA() {
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
-
-	// DMA Configuration for receiver
-	DMA_DeInit(DMA1_Channel7 );
-	ACCState.i2cRXDMA.DMA_BufferSize = 7;
-	ACCState.i2cRXDMA.DMA_MemoryBaseAddr = (uint32_t) & ACCState.RawData[0];
-	//uart_state.uartTXDMA.DMA_MemoryBaseAddr = (uint32_t) value;
-	ACCState.i2cRXDMA.DMA_PeripheralBaseAddr = (uint32_t) & I2C1 ->RXDR;
-	ACCState.i2cRXDMA.DMA_DIR = DMA_DIR_PeripheralSRC;
-	ACCState.i2cRXDMA.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-	ACCState.i2cRXDMA.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	ACCState.i2cRXDMA.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
-	ACCState.i2cRXDMA.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-	ACCState.i2cRXDMA.DMA_Mode = DMA_Mode_Normal;
-	ACCState.i2cRXDMA.DMA_Priority = DMA_Priority_Medium;
-	ACCState.i2cRXDMA.DMA_M2M = DMA_M2M_Disable;
-
-	// Enable DMA Finished Interrupt
-	DMA_ClearITPendingBit(DMA1_IT_TC7);
-	DMA_ITConfig(DMA1_Channel7, DMA_IT_TC, ENABLE);
-	DMA_Init(DMA1_Channel7, &ACCState.i2cRXDMA);
-
-	NVIC_InitTypeDef NVIC_InitStructure;
-	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel7_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x9;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-}
+//void ACC_configureDMA() {
+//	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+//
+//	// DMA Configuration for receiver
+//	DMA_DeInit(DMA1_Channel7 );
+//	ACCState.i2cRXDMA.DMA_BufferSize = 7;
+//	ACCState.i2cRXDMA.DMA_MemoryBaseAddr = (uint32_t) & ACCState.RawData[0];
+//	//uart_state.uartTXDMA.DMA_MemoryBaseAddr = (uint32_t) value;
+//	ACCState.i2cRXDMA.DMA_PeripheralBaseAddr = (uint32_t) & I2C1 ->RXDR;
+//	ACCState.i2cRXDMA.DMA_DIR = DMA_DIR_PeripheralSRC;
+//	ACCState.i2cRXDMA.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+//	ACCState.i2cRXDMA.DMA_MemoryInc = DMA_MemoryInc_Enable;
+//	ACCState.i2cRXDMA.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
+//	ACCState.i2cRXDMA.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+//	ACCState.i2cRXDMA.DMA_Mode = DMA_Mode_Normal;
+//	ACCState.i2cRXDMA.DMA_Priority = DMA_Priority_Medium;
+//	ACCState.i2cRXDMA.DMA_M2M = DMA_M2M_Disable;
+//
+//	// Enable DMA Finished Interrupt
+//	DMA_ClearITPendingBit(DMA1_IT_TC7);
+//	DMA_ITConfig(DMA1_Channel7, DMA_IT_TC, ENABLE);
+//	//DMA_Init(DMA1_Channel7, &ACCState.i2cRXDMA);
+//
+//	NVIC_InitTypeDef NVIC_InitStructure;
+//	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel7_IRQn;
+//	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x9;
+//	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+//	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+//	NVIC_Init(&NVIC_InitStructure);
+//}
 
 void ACC_IOInit() {
 	/* Configure GPIO PINs to detect Interrupts */
@@ -129,17 +129,25 @@ void I2C1_EV_IRQHandler() {
 
 	/* TCI Interrupt */
 	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_TCI) == SET) {
+
 		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_TCI, DISABLE);
 		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_TCI);
 
 		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_RXI);
 		I2C_ITConfig(LSM303DLHC_I2C, I2C_IT_RXI, ENABLE);
 
-//		// Enable DMA
-//		ACCState.i2cRXDMA.DMA_BufferSize = NumByteToReadTMP;
+////		// Enable DMA
+//		ACCState.i2cRXDMA.DMA_BufferSize = ACCState.ACCStateI2CState.NumByteToReadTMP;
+//		ACCState.i2cRXDMA.DMA_MemoryBaseAddr = (uint32_t) &ACCState.RawData[0];
+//
+//
+//		DMA_ClearITPendingBit(DMA1_IT_TC7);
+//		DMA_ITConfig(DMA1_Channel7, DMA_IT_TC, ENABLE);
+//
 //		DMA_Init(DMA1_Channel7, &ACCState.i2cRXDMA);
-//		I2C_DMACmd(LSM303DLHC_I2C, I2C_DMAReq_Rx, ENABLE);
 //		DMA_Cmd(DMA1_Channel7, ENABLE);
+//
+//		I2C_DMACmd(LSM303DLHC_I2C, I2C_DMAReq_Rx, ENABLE);
 
 		/* Configure slave address, nbytes, reload, end mode and start or stop generation */
 		I2C_TransferHandling(LSM303DLHC_I2C, ACCState.ACCStateI2CState.DeviceAddrTMP,
@@ -151,6 +159,7 @@ void I2C1_EV_IRQHandler() {
 
 	/* RXI Interrupt */
 	if (I2C_GetITStatus(LSM303DLHC_I2C, I2C_IT_RXI) == SET) {
+
 		I2C_ClearITPendingBit(LSM303DLHC_I2C, I2C_IT_RXI);
 
 		/* Read data from RXDR */
@@ -206,7 +215,7 @@ uint16_t LSM303DLHC_ReadDMA(uint8_t DeviceAddr, uint8_t RegAddr,
 	ACCState.ACCStateI2CState.pBufferTMP = pBuffer;
 	ACCState.ACCStateI2CState.DeviceAddrTMP = DeviceAddr;
 
-	ACCState.i2cRXDMA.DMA_MemoryBaseAddr = (uint32_t) & pBuffer[0];
+	//ACCState.i2cRXDMA.DMA_MemoryBaseAddr = (uint32_t) & pBuffer[0];
 
 	/* Test on BUSY Flag */
 	LSM303DLHC_Timeout = LSM303DLHC_LONG_TIMEOUT;
@@ -296,7 +305,9 @@ void EXTI4_IRQHandler() {
 void ACC_CompassReadAcc(float* pfData) {
 	int16_t pnRawData[3];
 	uint8_t ctrlx[2];
-	uint8_t buffer[6], cDivider;
+	uint8_t buffer[6];
+
+	uint8_t cDivider;
 	uint8_t i = 0;
 	float LSM_Acc_Sensitivity = LSM_Acc_Sensitivity_2g;
 
