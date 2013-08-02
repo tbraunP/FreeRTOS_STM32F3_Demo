@@ -45,15 +45,15 @@ SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g")
 # add libs in subdirectory
 add_subdirectory (lib/STM32F3_CMSIS)
 add_subdirectory (lib/STM32F3_PeriphLib)
-add_subdirectory (lib/FreeRTOSV7.4.2)
+add_subdirectory (lib/FreeRTOSV7.5.2)
 
 # add -I compile headers for LIBS
 include_directories("lib/STM32F3_CMSIS/inc")
 include_directories("lib/STM32F3_PeriphLib/inc")
 
 # freertos include files
-include_directories("lib/FreeRTOSV7.4.2/FreeRTOS/Source/include")
-include_directories("lib/FreeRTOSV7.4.2/FreeRTOS/Source/portable/GCC/ARM_CM4F")
+include_directories("lib/FreeRTOSV7.5.2/FreeRTOS/Source/include")
+include_directories("lib/FreeRTOSV7.5.2/FreeRTOS/Source/portable/GCC/ARM_CM4F")
 
 
 # default files
@@ -72,6 +72,6 @@ AUX_SOURCE_DIRECTORY("src/tasks" SRCS)
 
 # define target
 add_executable(${TARGET}.elf ${SRCS})
-target_link_libraries (${TARGET}.elf m c STM32F3_CMSIS STM32F3_PeriphLib FREERTOS_742)
+target_link_libraries (${TARGET}.elf m c STM32F3_CMSIS STM32F3_PeriphLib FREERTOS_752)
 
 make_firmware(${TARGET}.elf)

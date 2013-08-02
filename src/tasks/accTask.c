@@ -286,7 +286,7 @@ void ACC_CompassConfig(void) {
 
 	/* Configure the accelerometer LPF main parameters */
 	LSM303DLHC_AccFilterConfig(&LSM303DLHCFilter_InitStructure);
-	LSM303DLHC_AccClickITConfig()
+	//LSM303DLHC_AccClickITConfig();
 
 	// Enable Interrupt for Int1 Watermark Threshold (data ready for readout)
 	ACC_IOInit();

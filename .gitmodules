@@ -4,6 +4,6 @@
 [submodule "lib/STM32F3_CMSIS"]
 	path = lib/STM32F3_CMSIS
 	url = https://github.com/tbraunP/STM32F3_CMSIS.git
-[submodule "lib/FreeRTOSV7.4.2"]
-	path = lib/FreeRTOSV7.4.2
+[submodule "lib/FreeRTOSV7.5.2"]
+	path = lib/FreeRTOSV7.5.2
 	url = https://github.com/tbraunP/FreeRTOS.git
