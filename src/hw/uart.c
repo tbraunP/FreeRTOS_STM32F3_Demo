@@ -43,7 +43,7 @@ int uart_chars_avail(void) {
 }
 
 /**
- * Do not use printf from inside a interrupt routine
+ * Do not use printf from inside a interrupt routine, not masked by FreeRTOS
  */
 ssize_t uart_write_r(struct _reent *r, int fd, const void *ptr, size_t len) {
 	int ln = 0;
@@ -141,8 +141,6 @@ void uart_init(int baudrate) {
 	DMA_DeInit(DMA2_Channel5 );
 
 	// DMA Configuration
-	//uart_state.uartTXDMA.DMA_BufferSize = strlen(text);
-	//uart_state.uartTXDMA.DMA_MemoryBaseAddr = (uint32_t) value;
 	uart_state.uartTXDMA.DMA_PeripheralBaseAddr = (uint32_t) & UART4 ->TDR;
 	uart_state.uartTXDMA.DMA_DIR = DMA_DIR_PeripheralDST;
 	uart_state.uartTXDMA.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
