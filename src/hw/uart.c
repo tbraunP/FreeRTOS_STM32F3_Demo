@@ -28,52 +28,35 @@ struct uart_state {
 
 	DMA_InitTypeDef uartTXDMA;
 	volatile uint8_t dmaRunning;
-	xSemaphoreHandle mutex;
 } uart_state;
 
 void uart_base_init(void) {
 	rb_alloc(&uart_state.rx_buf, RX_SIZE);
 	rb_alloc(&uart_state.tx_buf, TX_SIZE);
 	uart_state.dmaRunning = 0;
-	uart_state.mutex = xSemaphoreCreateMutex();
 }
 
 int uart_chars_avail(void) {
 	return uart_state.rx_buf.len;
 }
 
-/**
- * Do not use printf from inside a interrupt routine, not masked by FreeRTOS
- */
+void startDMA();
+
 ssize_t uart_write_r(struct _reent *r, int fd, const void *ptr, size_t len) {
 	int ln = 0;
 
-	if (xSemaphoreTake(uart_state.mutex, (portTickType) 10) == pdTRUE) {
+    vPortEnterCritical();
+    {
 		ln = rb_write(&uart_state.tx_buf, (const uint8_t*) ptr, len);
 		if (ln != len) {
 			++uart_state.uart_stats.tx_overrun;
 		}
 
-		vPortEnterCritical();
 		if (!uart_state.dmaRunning && ln > 0) {
-			// copy message
-			uint8_t* str = (uint8_t*) malloc(
-					uart_state.tx_buf.len * sizeof(uint8_t));
-			int len = rb_read(&uart_state.tx_buf, str, uart_state.tx_buf.len);
-			uart_state.uartTXDMA.DMA_MemoryBaseAddr = (uint32_t) str;
-			uart_state.uartTXDMA.DMA_BufferSize = len;
-
-			// start transfer
-			DMA_Init(DMA2_Channel5, &uart_state.uartTXDMA);
-			DMA_Cmd(DMA2_Channel5, ENABLE);
-			uart_state.dmaRunning = 1;
+            startDMA();
 		}
-		vPortExitCritical();
-		xSemaphoreGive(uart_state.mutex);
-
-	} else {
-		++uart_state.uart_stats.tx_overrun;
-	}
+    }
+	vPortExitCritical();
 
 	return ln;
 }
@@ -142,7 +125,8 @@ void uart_init(int baudrate) {
 
 	// DMA Configuration
 	uart_state.uartTXDMA.DMA_PeripheralBaseAddr = (uint32_t) & UART4 ->TDR;
-	uart_state.uartTXDMA.DMA_DIR = DMA_DIR_PeripheralDST;
+	uart_state.uartTXDMA.DMA_MemoryBaseAddr = (uint32_t) NULL;
+    uart_state.uartTXDMA.DMA_DIR = DMA_DIR_PeripheralDST;
 	uart_state.uartTXDMA.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	uart_state.uartTXDMA.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	uart_state.uartTXDMA.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
@@ -181,29 +165,36 @@ void DMA2_Channel5_IRQHandler() {
 	USART_ClearITPendingBit(UART4, USART_IT_TC );
 
 	// free current memory
+    vPortEnterCritical();
 	free((uint8_t*) uart_state.uartTXDMA.DMA_MemoryBaseAddr);
+    uart_state.uartTXDMA.DMA_MemoryBaseAddr = (uint32_t) NULL;
 
 	// check for new transmission
-	vPortEnterCritical();
-	uart_state.dmaRunning = 0;
-
 	if (uart_state.tx_buf.len > 0) {
-		// copy message
-		uint8_t* str = (uint8_t*) malloc(
-				uart_state.tx_buf.len * sizeof(uint8_t));
-		int len = rb_read(&uart_state.tx_buf, str, uart_state.tx_buf.len);
-		uart_state.uartTXDMA.DMA_MemoryBaseAddr = (uint32_t) str;
-		uart_state.uartTXDMA.DMA_BufferSize = len;
-
-		// start transfer
-		// DMA Request: Always call DMA_Init and DMA_CMD
-		DMA_Init(DMA2_Channel5, &uart_state.uartTXDMA);
-		DMA_Cmd(DMA2_Channel5, ENABLE);
-		uart_state.dmaRunning = 1;
-	}
+        startDMA();
+	}else{
+       uart_state.dmaRunning = 0;
+    }
 
 	vPortExitCritical();
 }
+
+
+void startDMA(){
+	// copy message
+    int len = uart_state.tx_buf.len;
+	uint8_t* str = (uint8_t*) malloc(len * sizeof(uint8_t));
+	len = rb_read(&uart_state.tx_buf, str, len);
+	uart_state.uartTXDMA.DMA_MemoryBaseAddr = (uint32_t) str;
+	uart_state.uartTXDMA.DMA_BufferSize = len;
+
+	// start transfer
+	// DMA Request: Always call DMA_Init and DMA_CMD
+	DMA_Init(DMA2_Channel5, &uart_state.uartTXDMA);
+	DMA_Cmd(DMA2_Channel5, ENABLE);
+	uart_state.dmaRunning = 1;
+}
+
 
 /*
  // -------------------- Shell commands --------------------
